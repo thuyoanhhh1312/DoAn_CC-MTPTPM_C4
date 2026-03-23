@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --color-primary: #12332b;
+  --color-accent: #b08a4a;
+  --color-bg: #f5f6f7;
+  --color-surface: #ffffff;
+  --color-text: #1a1d21;
+  --color-border: #e6e8ec;
+  --color-primary-soft: #1a4439;
+  --color-primary-deep: #0f2b24;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--color-bg);
+  font-family: 'Manrope', sans-serif;
+  color: var(--color-text);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.portal-customer {
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: 'Manrope', sans-serif;
+}
+
+.portal-customer h1,
+.portal-customer h2,
+.portal-customer h3,
+.portal-customer h4,
+.portal-customer .portal-title {
+  font-family: 'Playfair Display', serif;
+}
+
+.portal-admin {
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+
+.portal-admin h1,
+.portal-admin h2,
+.portal-admin h3,
+.portal-admin h4,
+.portal-admin .portal-title {
+  font-family: 'Sora', sans-serif;
+}
