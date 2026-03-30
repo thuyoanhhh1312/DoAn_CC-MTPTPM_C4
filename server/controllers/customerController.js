@@ -1,5 +1,5 @@
-import db from '../models/index.js';
-import { Op, fn, col, literal } from 'sequelize';
+import db from "../models/index.js";
+import { Op, fn, col, literal } from "sequelize";
 
 const SUSPENDED_TOKEN_MARKER = "__ACCOUNT_SUSPENDED__";
 // Lấy khách hàng theo ID
@@ -7,10 +7,13 @@ export const getCustomerById = async (req, res) => {
   const { id } = req.params;
   try {
     const customer = await db.Customer.findByPk(id);
-    if (!customer) return res.status(404).json({ message: 'Khách hàng không tìm thấy' });
+    if (!customer)
+      return res.status(404).json({ message: "Khách hàng không tìm thấy" });
     res.status(200).json(customer);
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi khi lấy khách hàng', error: err.message });
+    res
+      .status(500)
+      .json({ message: "Lỗi khi lấy khách hàng", error: err.message });
   }
 };
 
@@ -20,7 +23,7 @@ export const getCustomerEmails = async (req, res) => {
     const { keyword } = req.query;
     const where = {};
 
-    if (keyword && keyword.trim() !== '') {
+    if (keyword && keyword.trim() !== "") {
       where[Op.or] = [
         { name: { [Op.like]: `%${keyword}%` } },
         { email: { [Op.like]: `%${keyword}%` } },
@@ -28,7 +31,7 @@ export const getCustomerEmails = async (req, res) => {
     }
 
     const customers = await db.Customer.findAll({
-      attributes: ['customer_id', 'name', 'email', 'segment_type'],
+      attributes: ["customer_id", "name", "email", "segment_type"],
       where,
       include: [
         {
@@ -38,14 +41,14 @@ export const getCustomerEmails = async (req, res) => {
           required: true,
         },
       ],
-      order: [['name', 'ASC']],
+      order: [["name", "ASC"]],
       limit: 500,
     });
 
     res.status(200).json(customers);
   } catch (err) {
     res.status(500).json({
-      message: 'Lỗi khi lấy danh sách email khách hàng',
+      message: "Lỗi khi lấy danh sách email khách hàng",
       error: err.message,
     });
   }
@@ -56,23 +59,35 @@ export const deleteCustomer = async (req, res) => {
   const { id } = req.params;
   try {
     const customer = await db.Customer.findByPk(id);
-    if (!customer) return res.status(404).json({ message: 'Khách hàng không tìm thấy' });
+    if (!customer)
+      return res.status(404).json({ message: "Khách hàng không tìm thấy" });
 
     const user = await db.User.findByPk(customer.user_id);
     if (!user) {
-      return res.status(404).json({ message: 'Người dùng liên kết không tồn tại' });
+      return res
+        .status(404)
+        .json({ message: "Người dùng liên kết không tồn tại" });
     }
 
     if (user.refresh_token === SUSPENDED_TOKEN_MARKER) {
-      return res.status(200).json({ message: 'Tài khoản khách hàng đã ở trạng thái dừng hoạt động' });
+      return res
+        .status(200)
+        .json({
+          message: "Tài khoản khách hàng đã ở trạng thái dừng hoạt động",
+        });
     }
 
     user.refresh_token = SUSPENDED_TOKEN_MARKER;
     await user.save();
 
-    res.status(200).json({ message: 'Đã dừng hoạt động tài khoản khách hàng' });
+    res.status(200).json({ message: "Đã dừng hoạt động tài khoản khách hàng" });
   } catch (err) {
-    res.status(400).json({ message: 'Lỗi khi dừng tài khoản khách hàng', error: err.message });
+    res
+      .status(400)
+      .json({
+        message: "Lỗi khi dừng tài khoản khách hàng",
+        error: err.message,
+      });
   }
 };
 
@@ -82,7 +97,7 @@ export const getAllCustomers = async (req, res) => {
 
   try {
     let whereClause = {};
-    if (keyword && keyword.trim() !== '') {
+    if (keyword && keyword.trim() !== "") {
       whereClause = {
         [Op.or]: [
           { name: { [Op.like]: `%${keyword}%` } },
@@ -99,9 +114,12 @@ export const getAllCustomers = async (req, res) => {
       attributes: {
         include: [
           // Đếm số đơn hàng
-          [fn('COUNT', col('Orders.order_id')), 'orderCount'],
+          [fn("COUNT", col("Orders.order_id")), "orderCount"],
           // Tổng tiền đơn hàng (COALESCE xử lý null)
-          [fn('COALESCE', fn('SUM', col('Orders.total')), 0), 'totalOrderAmount'],
+          [
+            fn("COALESCE", fn("SUM", col("Orders.total")), 0),
+            "totalOrderAmount",
+          ],
 
           // Đếm đánh giá tích cực (POS)
           [
@@ -109,7 +127,7 @@ export const getAllCustomers = async (req, res) => {
               SELECT COUNT(*) FROM product_review AS pr
               WHERE pr.customer_id = Customer.customer_id AND pr.sentiment = 'POS'
             )`),
-            'positiveReviewCount'
+            "positiveReviewCount",
           ],
           // Đếm đánh giá tiêu cực (NEG)
           [
@@ -117,7 +135,7 @@ export const getAllCustomers = async (req, res) => {
               SELECT COUNT(*) FROM product_review AS pr
               WHERE pr.customer_id = Customer.customer_id AND pr.sentiment = 'NEG'
             )`),
-            'negativeReviewCount'
+            "negativeReviewCount",
           ],
           // Đếm đánh giá trung tính (NEU)
           [
@@ -125,7 +143,7 @@ export const getAllCustomers = async (req, res) => {
               SELECT COUNT(*) FROM product_review AS pr
               WHERE pr.customer_id = Customer.customer_id AND pr.sentiment = 'NEU'
             )`),
-            'neutralReviewCount'
+            "neutralReviewCount",
           ],
         ],
       },
@@ -136,16 +154,16 @@ export const getAllCustomers = async (req, res) => {
           required: false, // lấy cả khách hàng chưa có đơn hàng
         },
       ],
-      group: ['Customer.customer_id'],
-      order: [['customer_id', 'ASC']],
-      raw: true,  // để kết quả trả về object thuần, dễ dùng frontend
+      group: ["Customer.customer_id"],
+      order: [["customer_id", "ASC"]],
+      raw: true, // để kết quả trả về object thuần, dễ dùng frontend
     });
 
     return res.status(200).json(customers);
   } catch (err) {
     console.error(err);
     return res.status(500).json({
-      message: 'Lỗi khi lấy danh sách khách hàng',
+      message: "Lỗi khi lấy danh sách khách hàng",
       error: err.message,
     });
   }
@@ -160,7 +178,10 @@ export const updateCustomerProfile = async (req, res) => {
 
   try {
     // Tìm customer theo user_id
-    let customer = await db.Customer.findOne({ where: { user_id: userId }, transaction: t });
+    let customer = await db.Customer.findOne({
+      where: { user_id: userId },
+      transaction: t,
+    });
 
     if (!customer) {
       // Nếu chưa có record customer, tạo mới
@@ -180,7 +201,7 @@ export const updateCustomerProfile = async (req, res) => {
           gender: gender || null,
           address: address || null,
         },
-        { transaction: t }
+        { transaction: t },
       );
     } else {
       // Cập nhật các trường thông tin cá nhân
@@ -221,10 +242,12 @@ export const getCustomer = async (req, res) => {
 
   try {
     const customer = await db.Customer.findOne({ where: { user_id: userId } });
-    if (!customer) return res.status(404).json({ message: 'Khách hàng không tìm thấy' });
+    if (!customer)
+      return res.status(404).json({ message: "Khách hàng không tìm thấy" });
     res.status(200).json(customer);
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi khi lấy khách hàng', error: err.message });
+    res
+      .status(500)
+      .json({ message: "Lỗi khi lấy khách hàng", error: err.message });
   }
 };
-
