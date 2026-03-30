@@ -11,6 +11,7 @@ import {
 } from "../middlewares/auth.js";
 import * as authController from "../controllers/authController.js";
 import * as customerController from "../controllers/customerController.js";
+import * as subCategoryController from "../controllers/subCategoryController.js";
 
 // Auth routes
 router.post("/auth/register", authController.registerUser);
@@ -56,5 +57,27 @@ router.get("/auth/current-user", authenticateToken, authController.currentUser);
 router.post("/auth/send-otp", authController.sendOtp);
 router.post("/auth/verify-otp", authController.verifyOtp);
 router.post("/auth/reset-password", authController.resetPassword);
+// SubCategory routes
+router.get("/subcategories", subCategoryController.getAllSubCategories);
+router.get("/subcategories/:id", subCategoryController.getSubCategoryById);
+// ❌ Chỉ Admin được CRUD subcategory
+router.post(
+  "/subcategories",
+  authenticateToken,
+  isAdmin,
+  subCategoryController.createSubCategory,
+);
+router.put(
+  "/subcategories/:id",
+  authenticateToken,
+  isAdmin,
+  subCategoryController.updateSubCategory,
+);
+router.delete(
+  "/subcategories/:id",
+  authenticateToken,
+  isAdmin,
+  subCategoryController.deleteSubCategory,
+);
 
 export default router;
