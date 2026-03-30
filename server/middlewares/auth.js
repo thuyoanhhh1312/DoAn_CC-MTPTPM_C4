@@ -1,6 +1,5 @@
 import jwt from "jsonwebtoken";
 import { ERROR_CODES } from "../utils/errorCodes.js";
-import { APP_CONSTANTS } from "../config/constants.js";
 
 export const authenticateToken = (req, res, next) => {
   const authHeader = req.headers["authorization"];
@@ -30,23 +29,21 @@ export const authenticateToken = (req, res, next) => {
 
 export const isAdmin = (req, res, next) => {
   const { user } = req;
-  if (!user || user.role_id !== APP_CONSTANTS.ROLE_ADMIN_ID) {
+
+  if (!user || user.role_id !== 1) {
     return next({
       statusCode: 403,
       code: ERROR_CODES.UNAUTHORIZED,
       message: "Bạn không có quyền truy cập (yêu cầu admin).",
     });
   }
+
   next();
 };
 
 export const isAdminOrStaff = (req, res, next) => {
   const { user } = req;
-  if (
-    !user ||
-    (user.role_id !== APP_CONSTANTS.ROLE_ADMIN_ID &&
-      user.role_id !== APP_CONSTANTS.ROLE_STAFF_ID)
-  ) {
+  if (!user || (user.role_id !== 1 && user.role_id !== 3)) {
     return next({
       statusCode: 403,
       code: ERROR_CODES.UNAUTHORIZED,
@@ -56,9 +53,10 @@ export const isAdminOrStaff = (req, res, next) => {
   next();
 };
 
+// ✅ Staff Role (role_id = 3)
 export const isStaff = (req, res, next) => {
   const { user } = req;
-  if (!user || user.role_id !== APP_CONSTANTS.ROLE_STAFF_ID) {
+  if (!user || user.role_id !== 3) {
     return next({
       statusCode: 403,
       code: ERROR_CODES.UNAUTHORIZED,
