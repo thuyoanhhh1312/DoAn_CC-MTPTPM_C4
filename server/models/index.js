@@ -20,7 +20,7 @@ for (const file of files) {
   db[model.name] = model;
 }
 
-const { User, Role, Customer } = db;
+const { User, Role, Customer, Order } = db;
 
 if (User && Role) {
   User.belongsTo(Role, { foreignKey: "role_id" });
@@ -30,6 +30,11 @@ if (User && Role) {
 if (User && Customer) {
   User.hasOne(Customer, { foreignKey: "user_id" });
   Customer.belongsTo(User, { foreignKey: "user_id" });
+}
+
+if (Customer && Order) {
+  Customer.hasMany(Order, { foreignKey: "customer_id", sourceKey: "id" });
+  Order.belongsTo(Customer, { foreignKey: "customer_id", targetKey: "id" });
 }
 
 db.sequelize = sequelize;
