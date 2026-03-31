@@ -11,6 +11,8 @@ import {
   OTP_CONSTANTS,
 } from "../services/otpService.js";
 
+const SUSPENDED_TOKEN_MARKER = "__ACCOUNT_SUSPENDED__";
+
 const generateRandomPhone = () => {
   let phone = "0"; // Bắt đầu với số 0
   for (let i = 0; i < 9; i++) {
@@ -152,6 +154,15 @@ export const loginUser = async (req, res, next) => {
 
   try {
     const user = await db.User.findOne({ where: { email } });
+
+    if (user?.refresh_token === SUSPENDED_TOKEN_MARKER) {
+      return next({
+        statusCode: 403,
+        code: ERROR_CODES.ACCOUNT_SUSPENDED,
+        message: "Tài khoản đã bị dừng hoạt động.",
+      });
+    }
+
     const isValid =
       user && (await bcrypt.compare(password, user.password_hash));
 
@@ -216,6 +227,14 @@ export const refreshToken = async (req, res, next) => {
       process.env.JWT_REFRESH_SECRET_KEY,
     );
     const user = await db.User.findOne({ where: { id: payload.userId } });
+
+    if (user?.refresh_token === SUSPENDED_TOKEN_MARKER) {
+      return next({
+        statusCode: 403,
+        code: ERROR_CODES.ACCOUNT_SUSPENDED,
+        message: "Tài khoản đã bị dừng hoạt động.",
+      });
+    }
 
     if (!user || user.refresh_token !== refreshToken) {
       return next({
