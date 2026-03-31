@@ -1,3 +1,4 @@
+// config/db.js
 import dotenv from "dotenv";
 import { Sequelize } from "sequelize";
 
@@ -10,23 +11,15 @@ const sequelize = new Sequelize(
   {
     host: process.env.DB_HOST,
     dialect: "mysql",
-    logging: process.env.DB_LOGGING === "true" ? console.log : false,
-    pool: {
-      max: 10,
-      min: 0,
-      acquire: 30000,
-      idle: 10000,
-    },
-  }
+  },
 );
 
-export const verifyDbConnection = async () => {
-  try {
-    await sequelize.authenticate();
-    console.log("✅ Database connection established");
-  } catch (error) {
-    console.error("❌ Database connection failed:", error.message);
-  }
-};
+// Kiểm tra kết nối
+sequelize
+  .authenticate()
+  .then(() => console.log("Kết nối cơ sở dữ liệu thành công!"))
+  .catch((err) => {
+    console.error("Lỗi kết nối cơ sở dữ liệu:", err);
+  });
 
 export default sequelize;
