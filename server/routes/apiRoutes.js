@@ -14,6 +14,9 @@ import * as customerController from "../controllers/customerController.js";
 import * as categoryController from "../controllers/categoryController.js";
 import * as subCategoryController from "../controllers/subCategoryController.js";
 
+import * as tagController from "../controllers/tagController.js";
+router.get("/tags", tagController.getAllTags);
+
 // Auth routes
 router.post("/auth/register", authController.registerUser);
 router.post("/auth/signup", authController.registerUser);
