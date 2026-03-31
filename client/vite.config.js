@@ -1,12 +1,57 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
+import { defineConfig, transformWithEsbuild } from "vite";
+import react from "@vitejs/plugin-react";
+import svgr from "vite-plugin-svgr";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const jsWithJsx = () => ({
+  name: "vite:load-js-as-jsx",
+  enforce: "pre",
+  async transform(code, id) {
+    const [filepath] = id.split("?");
+    if (!filepath.endsWith(".js")) {
+      return null;
+    }
+
+    return transformWithEsbuild(code, filepath, {
+      loader: "jsx",
+      jsx: "automatic",
+    });
+  },
+});
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    jsWithJsx(),
+    svgr(),
+    react({
+      include: /\.(j|t)sx?$/,
+    }),
+  ],
+  assetsInclude: ["**/*.gltf", "**/*.glb"],
+  esbuild: {
+    loader: "jsx",
+    include: /src\/.*\.[jt]sx?$/,
+    exclude: /node_modules/,
+    jsx: "automatic",
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      loader: { ".js": "jsx" },
+      jsx: "automatic",
+    },
+  },
+  test: {
+    globals: true,
+    environment: "jsdom",
+    setupFiles: "./src/setupTests.js",
+    css: true,
+  },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      "@": path.resolve(__dirname, "./src"),
     },
   },
 });

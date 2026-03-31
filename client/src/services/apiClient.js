@@ -1,6 +1,7 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
 
 const baseConfig = {
   baseURL: API_BASE_URL,
@@ -53,7 +54,7 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    if (typeof authHandlers.refreshToken !== 'function') {
+    if (typeof authHandlers.refreshToken !== "function") {
       authHandlers.onAuthFailed?.();
       return Promise.reject(error);
     }
@@ -70,7 +71,7 @@ apiClient.interceptors.response.use(
       const nextAccessToken = await refreshPromise;
 
       if (!nextAccessToken) {
-        throw new Error('Refresh endpoint returned no access token');
+        throw new Error("Refresh endpoint returned no access token");
       }
 
       authHandlers.setAccessToken?.(nextAccessToken);
