@@ -1,15 +1,20 @@
-import { useState } from 'react';
-import { Alert, App, Button, Card, Form, Input, Space, Typography } from 'antd';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { resolveReturnUrl } from '@/utils/returnUrl';
+import { useState } from "react";
+import { Alert, App, Button, Card, Form, Input, Space, Typography } from "antd";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { resolveReturnUrl } from "@/utils/returnUrl";
+import { useDispatch } from "react-redux";
+import { login } from "@/api/auth";
 
 const { Link, Text } = Typography;
 
 const demoAccounts = [
-  { label: 'Admin', email: 'admin@jewel.local', password: 'Admin@123' },
-  { label: 'Staff', email: 'staff@jewel.local', password: 'Staff@123' },
-  { label: 'Customer', email: 'customer@jewel.local', password: 'Customer@123' },
+  { label: "Admin", email: "admin@jewel.local", password: "Admin@123" },
+  { label: "Staff", email: "staff@jewel.local", password: "Staff@123" },
+  {
+    label: "Customer",
+    email: "customer@jewel.local",
+    password: "Customer@123",
+  },
 ];
 
 const SignInPage = () => {
@@ -17,20 +22,29 @@ const SignInPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { message } = App.useApp();
-  const { signIn } = useAuth();
 
-  const returnUrl = resolveReturnUrl(searchParams.get('returnUrl'));
+  const returnUrl = resolveReturnUrl(searchParams.get("returnUrl"));
 
   const onFinish = async (values) => {
     setSubmitting(true);
 
     try {
-      await signIn(values);
-      message.success('Signed in successfully');
+      const res = await login(values);
+      const userData = {
+        ...res.data.user,
+        token: res.data.accessToken,
+        refreshToken: res.data.refreshToken,
+      };
+
+      dispatch({ type: "LOGGED_IN_USER", payload: userData });
+      localStorage.setItem("user", JSON.stringify(userData));
+
+      message.success("Signed in successfully");
       navigate(returnUrl, { replace: true });
     } catch (error) {
-      message.error(error.message || 'Unable to sign in');
+      message.error(error.message || "Unable to sign in");
     } finally {
       setSubmitting(false);
     }
@@ -45,8 +59,11 @@ const SignInPage = () => {
 
   return (
     <div className="mx-auto w-full max-w-[560px] px-4 py-8 md:py-12">
-      <Card title="Sign In" extra={<Text type="secondary">Return URL: {returnUrl}</Text>}>
-        <Space direction="vertical" size={14} style={{ width: '100%' }}>
+      <Card
+        title="Sign In"
+        extra={<Text type="secondary">Return URL: {returnUrl}</Text>}
+      >
+        <Space direction="vertical" size={14} style={{ width: "100%" }}>
           <Alert
             type="info"
             showIcon
@@ -56,7 +73,11 @@ const SignInPage = () => {
 
           <Space wrap>
             {demoAccounts.map((account) => (
-              <Button key={account.email} size="small" onClick={() => fillDemoCredentials(account)}>
+              <Button
+                key={account.email}
+                size="small"
+                onClick={() => fillDemoCredentials(account)}
+              >
                 {account.label}
               </Button>
             ))}
@@ -66,7 +87,10 @@ const SignInPage = () => {
             <Form.Item
               label="Email"
               name="email"
-              rules={[{ required: true, message: 'Email is required' }, { type: 'email' }]}
+              rules={[
+                { required: true, message: "Email is required" },
+                { type: "email" },
+              ]}
             >
               <Input placeholder="you@example.com" />
             </Form.Item>
@@ -74,7 +98,7 @@ const SignInPage = () => {
             <Form.Item
               label="Password"
               name="password"
-              rules={[{ required: true, message: 'Password is required' }]}
+              rules={[{ required: true, message: "Password is required" }]}
             >
               <Input.Password placeholder="Enter password" />
             </Form.Item>
@@ -85,8 +109,10 @@ const SignInPage = () => {
           </Form>
 
           <div className="flex items-center justify-between">
-            <Link onClick={() => navigate('/forgot-password')}>Forgot password?</Link>
-            <Link onClick={() => navigate('/signup')}>Create account</Link>
+            <Link onClick={() => navigate("/forgot-password")}>
+              Forgot password?
+            </Link>
+            <Link onClick={() => navigate("/signup")}>Create account</Link>
           </div>
         </Space>
       </Card>

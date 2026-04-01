@@ -1,11 +1,13 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { Spin } from 'antd';
-import { useAuth } from '@/contexts/AuthContext';
-import { extractUserRoles } from '@/utils/roles';
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Spin } from "antd";
+import { extractUserRoles } from "@/utils/roles";
+import { useSelector } from "react-redux";
 
 const RequireRole = ({ allowedRoles = [], children }) => {
   const location = useLocation();
-  const { user, isAuthenticated, isInitializing } = useAuth();
+  const user = useSelector((state) => state.user);
+  const isAuthenticated = Boolean(user?.token);
+  const isInitializing = false;
 
   if (isInitializing) {
     return (
@@ -16,7 +18,12 @@ const RequireRole = ({ allowedRoles = [], children }) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to={`/signin?returnUrl=${encodeURIComponent(location.pathname)}`} replace />;
+    return (
+      <Navigate
+        to={`/signin?returnUrl=${encodeURIComponent(location.pathname)}`}
+        replace
+      />
+    );
   }
 
   const userRoles = extractUserRoles(user);

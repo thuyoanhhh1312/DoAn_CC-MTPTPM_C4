@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { App, Button, Card, Form, Input, Typography } from 'antd';
-import { useNavigate } from 'react-router-dom';
-import { authApi } from '@/services/authApi';
+import { useState } from "react";
+import { App, Button, Card, Form, Input, Typography } from "antd";
+import { useNavigate } from "react-router-dom";
+import { authApi } from "@/services/auth";
 
 const { Link } = Typography;
 
@@ -15,10 +15,10 @@ const SignUpPage = () => {
 
     try {
       await authApi.signUp(values);
-      message.success('Sign-up request submitted. Please sign in.');
-      navigate('/signin');
+      message.success("Sign-up request submitted. Please sign in.");
+      navigate("/signin");
     } catch (error) {
-      message.error(error.message || 'Unable to register');
+      message.error(error.message || "Unable to register");
     } finally {
       setSubmitting(false);
     }
@@ -31,7 +31,7 @@ const SignUpPage = () => {
           <Form.Item
             label="Full name"
             name="name"
-            rules={[{ required: true, message: 'Name is required' }]}
+            rules={[{ required: true, message: "Name is required" }]}
           >
             <Input />
           </Form.Item>
@@ -39,7 +39,10 @@ const SignUpPage = () => {
           <Form.Item
             label="Email"
             name="email"
-            rules={[{ required: true, message: 'Email is required' }, { type: 'email' }]}
+            rules={[
+              { required: true, message: "Email is required" },
+              { type: "email" },
+            ]}
           >
             <Input />
           </Form.Item>
@@ -47,7 +50,10 @@ const SignUpPage = () => {
           <Form.Item
             label="Password"
             name="password"
-            rules={[{ required: true, message: 'Password is required' }, { min: 8 }]}
+            rules={[
+              { required: true, message: "Password is required" },
+              { min: 8 },
+            ]}
           >
             <Input.Password />
           </Form.Item>
@@ -55,16 +61,16 @@ const SignUpPage = () => {
           <Form.Item
             label="Confirm password"
             name="confirmPassword"
-            dependencies={['password']}
+            dependencies={["password"]}
             rules={[
-              { required: true, message: 'Please confirm password' },
+              { required: true, message: "Please confirm password" },
               ({ getFieldValue }) => ({
                 validator(_, value) {
-                  if (!value || getFieldValue('password') === value) {
+                  if (!value || getFieldValue("password") === value) {
                     return Promise.resolve();
                   }
 
-                  return Promise.reject(new Error('Passwords do not match'));
+                  return Promise.reject(new Error("Passwords do not match"));
                 },
               }),
             ]}
@@ -78,7 +84,9 @@ const SignUpPage = () => {
         </Form>
 
         <div className="mt-4 text-right">
-          <Link onClick={() => navigate('/signin')}>Already have an account?</Link>
+          <Link onClick={() => navigate("/signin")}>
+            Already have an account?
+          </Link>
         </div>
       </Card>
     </div>
