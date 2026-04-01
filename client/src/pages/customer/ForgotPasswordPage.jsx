@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { App, Button, Card, Form, Input, Typography } from 'antd';
-import { useNavigate } from 'react-router-dom';
-import { authApi } from '@/services/authApi';
+import { useState } from "react";
+import { App, Button, Card, Form, Input, Typography } from "antd";
+import { useNavigate } from "react-router-dom";
+import { authApi } from "@/services/auth";
 
 const { Text } = Typography;
 
@@ -15,9 +15,9 @@ const ForgotPasswordPage = () => {
 
     try {
       const response = await authApi.forgotPassword(values);
-      message.success(response.message || 'Reset instructions sent');
+      message.success(response.message || "Reset instructions sent");
     } catch (error) {
-      message.error(error.message || 'Unable to send reset instructions');
+      message.error(error.message || "Unable to send reset instructions");
     } finally {
       setSubmitting(false);
     }
@@ -34,7 +34,10 @@ const ForgotPasswordPage = () => {
           <Form.Item
             name="email"
             label="Email"
-            rules={[{ required: true, message: 'Email is required' }, { type: 'email' }]}
+            rules={[
+              { required: true, message: "Email is required" },
+              { type: "email" },
+            ]}
           >
             <Input />
           </Form.Item>
@@ -45,7 +48,7 @@ const ForgotPasswordPage = () => {
         </Form>
 
         <div className="mt-4 text-right">
-          <Button type="link" onClick={() => navigate('/signin')}>
+          <Button type="link" onClick={() => navigate("/signin")}>
             Back to sign in
           </Button>
         </div>
