@@ -1,5 +1,5 @@
 import axios from "axios";
-import { apiClient } from "@/services/apiClient";
+import axiosInstance from "./axiosInstance";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -15,7 +15,7 @@ const getCategories = async () => {
 
 const createCategory = async (categoryName, description, accessToken) => {
   try {
-    const response = await apiClient.post(
+    const response = await axiosInstance.post(
       `${API_URL}/categories`,
       {
         category_name: categoryName,
@@ -46,7 +46,7 @@ const getCategoryById = async (id) => {
 
 const updateCategory = async (id, categoryName, description, accessToken) => {
   try {
-    const response = await apiClient.put(
+    const response = await axiosInstance.put(
       `${API_URL}/categories/${id}`,
       {
         category_name: categoryName,
@@ -68,7 +68,7 @@ const updateCategory = async (id, categoryName, description, accessToken) => {
 // Xóa sản phẩm
 const deleteCategory = async (id, accessToken) => {
   try {
-    const response = await apiClient.delete(`${API_URL}/categories/${id}`, {
+    const response = await axiosInstance.delete(`${API_URL}/categories/${id}`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },

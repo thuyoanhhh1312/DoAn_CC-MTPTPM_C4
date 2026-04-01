@@ -1,7 +1,7 @@
 import axios from "axios";
-import { apiClient } from "@/services/apiClient";
+import axiosInstance from "./axiosInstance";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL;
 const getSubCategories = async () => {
   try {
     const response = await axios.get(`${API_URL}/subcategories`);
@@ -28,7 +28,7 @@ const createSubCategory = async (
   accessToken,
 ) => {
   try {
-    const response = await apiClient.post(
+    const response = await axiosInstance.post(
       `${API_URL}/subcategories`,
       {
         subcategory_name,
@@ -50,7 +50,7 @@ const createSubCategory = async (
 
 const updateSubCategory = async (id, data, accessToken) => {
   try {
-    const response = await apiClient.put(
+    const response = await axiosInstance.put(
       `${API_URL}/subcategories/${id}`,
       data,
       {
@@ -68,11 +68,14 @@ const updateSubCategory = async (id, data, accessToken) => {
 
 const deleteSubCategory = async (id, accessToken) => {
   try {
-    const response = await apiClient.delete(`${API_URL}/subcategories/${id}`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
+    const response = await axiosInstance.delete(
+      `${API_URL}/subcategories/${id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       },
-    });
+    );
     return response.data;
   } catch (error) {
     console.error("Error deleting subcategory:", error);

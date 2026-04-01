@@ -6,10 +6,11 @@ import Input from "../../../components/form/input/InputField";
 import Label from "../../../components/form/Label";
 import Button from "../../../components/ui/button/Button";
 import Swal from "sweetalert2";
-import { useAuth } from "@/contexts/AuthContext";
+import { useSelector } from "react-redux";
 
 const EditSubCategory = () => {
-  const { accessToken } = useAuth();
+  const user = useSelector((state) => state.user);
+  const accessToken = user?.token;
   const { id } = useParams();
   const navigate = useNavigate();
 
