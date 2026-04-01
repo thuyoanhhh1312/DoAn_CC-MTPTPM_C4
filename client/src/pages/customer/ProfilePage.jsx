@@ -1,11 +1,13 @@
-import { Button, Card, Form, Input, Space, Tag, Typography } from 'antd';
-import PageContainer from '@/components/common/PageContainer';
-import { useAuth } from '@/contexts/AuthContext';
+import { Button, Card, Form, Input, Space, Tag, Typography } from "antd";
+import PageContainer from "@/components/common/PageContainer";
+import { useSelector } from "react-redux";
+import { extractUserRoles } from "@/utils/roles";
 
 const { Text } = Typography;
 
 const ProfilePage = () => {
-  const { user, roles } = useAuth();
+  const user = useSelector((state) => state.user);
+  const roles = extractUserRoles(user);
 
   return (
     <PageContainer title="Profile" subtitle="Protected customer profile route.">
@@ -15,7 +17,7 @@ const ProfilePage = () => {
           initialValues={{
             name: user?.name,
             email: user?.email,
-            phone: '+84 900 000 000',
+            phone: "+84 900 000 000",
           }}
         >
           <div className="grid grid-cols-4 gap-4 md:grid-cols-8 desktop:grid-cols-12">
@@ -23,7 +25,7 @@ const ProfilePage = () => {
               className="col-span-4 md:col-span-4 desktop:col-span-6"
               name="name"
               label="Full name"
-              rules={[{ required: true, message: 'Name is required' }]}
+              rules={[{ required: true, message: "Name is required" }]}
             >
               <Input />
             </Form.Item>
@@ -51,7 +53,9 @@ const ProfilePage = () => {
                     {role}
                   </Tag>
                 ))}
-                <Text type="secondary">Role-aware UI can be extended from here.</Text>
+                <Text type="secondary">
+                  Role-aware UI can be extended from here.
+                </Text>
               </Space>
             </div>
           </div>

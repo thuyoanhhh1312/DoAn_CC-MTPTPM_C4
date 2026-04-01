@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { App, Button, Card, Form, Input } from 'antd';
-import { useNavigate } from 'react-router-dom';
-import { authApi } from '@/services/authApi';
+import { useState } from "react";
+import { App, Button, Card, Form, Input } from "antd";
+import { useNavigate } from "react-router-dom";
+import { authApi } from "@/services/auth";
 
 const ResetPasswordPage = () => {
   const [submitting, setSubmitting] = useState(false);
@@ -13,10 +13,10 @@ const ResetPasswordPage = () => {
 
     try {
       await authApi.resetPassword(values);
-      message.success('Password reset successful. Please sign in.');
-      navigate('/signin');
+      message.success("Password reset successful. Please sign in.");
+      navigate("/signin");
     } catch (error) {
-      message.error(error.message || 'Unable to reset password');
+      message.error(error.message || "Unable to reset password");
     } finally {
       setSubmitting(false);
     }
@@ -29,7 +29,7 @@ const ResetPasswordPage = () => {
           <Form.Item
             label="Reset token"
             name="token"
-            rules={[{ required: true, message: 'Token is required' }]}
+            rules={[{ required: true, message: "Token is required" }]}
           >
             <Input />
           </Form.Item>
@@ -37,7 +37,10 @@ const ResetPasswordPage = () => {
           <Form.Item
             label="New password"
             name="password"
-            rules={[{ required: true, message: 'New password is required' }, { min: 8 }]}
+            rules={[
+              { required: true, message: "New password is required" },
+              { min: 8 },
+            ]}
           >
             <Input.Password />
           </Form.Item>
@@ -45,16 +48,16 @@ const ResetPasswordPage = () => {
           <Form.Item
             label="Confirm password"
             name="confirmPassword"
-            dependencies={['password']}
+            dependencies={["password"]}
             rules={[
-              { required: true, message: 'Please confirm password' },
+              { required: true, message: "Please confirm password" },
               ({ getFieldValue }) => ({
                 validator(_, value) {
-                  if (!value || getFieldValue('password') === value) {
+                  if (!value || getFieldValue("password") === value) {
                     return Promise.resolve();
                   }
 
-                  return Promise.reject(new Error('Passwords do not match'));
+                  return Promise.reject(new Error("Passwords do not match"));
                 },
               }),
             ]}

@@ -1,78 +1,85 @@
-import React from "react";
-import {
-  BrowserRouter as Router,
-  Navigate,
-  Route,
-  Routes,
-} from "react-router-dom";
+import React, { useEffect } from "react";
+
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import AdminLayout from "./layout/AdminLayout";
+import CustomerLayout from "./layout/CustomerLayout";
 import SubCategory from "./pages/admin/SubCategory/index";
 import AddSubCategory from "./pages/admin/SubCategory/add";
 import EditSubCategory from "./pages/admin/SubCategory/edit";
-import SignInPage from "./pages/customer/SignInPage";
-import { useAuth } from "@/contexts/AuthContext";
-import { extractUserRoles } from "@/utils/roles";
-
-const AdminStaffGuard = ({ children }) => {
-  const { isInitializing, isAuthenticated, user } = useAuth();
-
-  if (isInitializing) {
-    return null;
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/signin" replace />;
-  }
-
-  const roles = extractUserRoles(user);
-  const isAllowed = roles.includes("admin") || roles.includes("staff");
-
-  if (!isAllowed) {
-    return <Navigate to="/signin" replace />;
-  }
-
-  return children;
-};
-
+import HomePage from "./pages/customer/HomePage";
+import ProfilePage from "./pages/customer/ProfilePage";
+import OrderHistoryPage from "./pages/customer/OrderHistoryPage";
+import SignIn from "./pages/AuthPages/SignIn";
+import SignUp from "./pages/AuthPages/SignUp";
+import { useDispatch } from "react-redux";
+import AdminOrStaffRoute from "./components/routers/AdminOrStaffRoute";
+import RequireAuth from "./components/guards/RequireAuth";
+import RequireGuest from "./components/guards/RequireGuest";
 function App() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    const userFromStorage = localStorage.getItem("user");
+    if (userFromStorage) {
+      try {
+        const parsedUser = JSON.parse(userFromStorage);
+        dispatch({
+          type: "LOGGED_IN_USER",
+          payload: parsedUser,
+        });
+      } catch (err) {
+        console.error("Lỗi parse user:", err);
+      }
+    }
+  }, [dispatch]);
+
   return (
-    <Router>
+    <BrowserRouter>
       <Routes>
-        <Route path="/signin" element={<SignInPage />} />
+        <Route element={<RequireGuest />}>
+          <Route path="/signin" element={<SignIn />} />
+          <Route path="/signup" element={<SignUp />} />
+        </Route>
+
+        <Route element={<CustomerLayout />}>
+          <Route path="/" element={<HomePage />} />
+
+          <Route element={<RequireAuth />}>
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/order-history" element={<OrderHistoryPage />} />
+          </Route>
+        </Route>
 
         <Route element={<AdminLayout />}>
           <Route
             path="/admin/subcategories"
             element={
-              <AdminStaffGuard>
+              <AdminOrStaffRoute>
                 <SubCategory />
-              </AdminStaffGuard>
+              </AdminOrStaffRoute>
             }
           />
           <Route
             path="/admin/subcategories/add"
             element={
-              <AdminStaffGuard>
+              <AdminOrStaffRoute>
                 <AddSubCategory />
-              </AdminStaffGuard>
+              </AdminOrStaffRoute>
             }
           />
           <Route
             path="/admin/subcategories/edit/:id"
             element={
-              <AdminStaffGuard>
+              <AdminOrStaffRoute>
                 <EditSubCategory />
-              </AdminStaffGuard>
+              </AdminOrStaffRoute>
             }
           />
         </Route>
 
-        <Route
-          path="*"
-          element={<Navigate to="/admin/subcategories" replace />}
-        />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </Router>
+    </BrowserRouter>
   );
 }
 

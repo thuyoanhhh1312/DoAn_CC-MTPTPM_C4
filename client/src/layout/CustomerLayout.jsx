@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Button,
   ConfigProvider,
@@ -7,69 +7,82 @@ import {
   Menu,
   Space,
   Typography,
-} from 'antd';
-import { Gem, LogOut, Menu as MenuIcon, ShoppingBag, UserRound } from 'lucide-react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { customerNavItems } from '@/config/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import { useMediaQuery } from '@/hooks/useMediaQuery';
+} from "antd";
+import {
+  Gem,
+  LogOut,
+  Menu as MenuIcon,
+  ShoppingBag,
+  UserRound,
+} from "lucide-react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { customerNavItems } from "@/config/navigation";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useDispatch, useSelector } from "react-redux";
+import { logout } from "@/api/auth";
 
 const { Header, Content, Footer } = Layout;
 const { Text, Title } = Typography;
 
 const customerTheme = {
   token: {
-    colorPrimary: '#12332B',
-    colorInfo: '#12332B',
-    colorLink: '#12332B',
-    colorText: '#1A1D21',
-    colorBgLayout: '#F5F6F7',
-    colorBgContainer: '#FFFFFF',
-    colorBorder: '#E6E8EC',
+    colorPrimary: "#12332B",
+    colorInfo: "#12332B",
+    colorLink: "#12332B",
+    colorText: "#1A1D21",
+    colorBgLayout: "#F5F6F7",
+    colorBgContainer: "#FFFFFF",
+    colorBorder: "#E6E8EC",
     borderRadius: 12,
-    fontFamily: 'Manrope, sans-serif',
+    fontFamily: "Manrope, sans-serif",
   },
   components: {
     Menu: {
-      itemColor: '#1A1D21',
-      itemSelectedColor: '#B08A4A',
-      horizontalItemSelectedColor: '#B08A4A',
+      itemColor: "#1A1D21",
+      itemSelectedColor: "#B08A4A",
+      horizontalItemSelectedColor: "#B08A4A",
       activeBarBorderWidth: 2,
-      itemBg: '#F5F6F7',
+      itemBg: "#F5F6F7",
     },
     Layout: {
-      headerBg: '#F5F6F7',
-      bodyBg: '#F5F6F7',
-      footerBg: '#12332B',
+      headerBg: "#F5F6F7",
+      bodyBg: "#F5F6F7",
+      footerBg: "#12332B",
     },
   },
 };
 
 const getSelectedNavKey = (pathname) => {
-  if (pathname.startsWith('/search') || pathname.startsWith('/category') || pathname.startsWith('/product')) {
-    return '/search';
+  if (
+    pathname.startsWith("/search") ||
+    pathname.startsWith("/category") ||
+    pathname.startsWith("/product")
+  ) {
+    return "/search";
   }
 
-  if (pathname.startsWith('/promotions')) {
-    return '/promotions';
+  if (pathname.startsWith("/promotions")) {
+    return "/promotions";
   }
 
-  if (pathname.startsWith('/news')) {
-    return '/news';
+  if (pathname.startsWith("/news")) {
+    return "/news";
   }
 
-  if (pathname.startsWith('/gold-prices')) {
-    return '/gold-prices';
+  if (pathname.startsWith("/gold-prices")) {
+    return "/gold-prices";
   }
 
-  return '/';
+  return "/";
 };
 
 const CustomerLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, signOut } = useAuth();
-  const isTabletUp = useMediaQuery('(min-width: 768px)');
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.user);
+  const isAuthenticated = Boolean(user?.token);
+  const isTabletUp = useMediaQuery("(min-width: 768px)");
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const onMenuClick = ({ key }) => {
@@ -78,8 +91,16 @@ const CustomerLayout = () => {
   };
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
+    const token = user?.token;
+    try {
+      if (token) {
+        await logout(token);
+      }
+    } finally {
+      localStorage.removeItem("user");
+      dispatch({ type: "LOGOUT" });
+      navigate("/");
+    }
   };
 
   const selectedKey = getSelectedNavKey(location.pathname);
@@ -87,11 +108,17 @@ const CustomerLayout = () => {
   return (
     <ConfigProvider theme={customerTheme}>
       <Layout className="portal-customer">
-        <Header style={{ borderBottom: '1px solid var(--color-border)', height: 74, lineHeight: '74px' }}>
+        <Header
+          style={{
+            borderBottom: "1px solid var(--color-border)",
+            height: 74,
+            lineHeight: "74px",
+          }}
+        >
           <div className="mx-auto flex h-full w-full max-w-[1600px] items-center justify-between gap-4 px-4 md:px-6 desktop:px-8">
             <button
               className="flex items-center gap-2 border-0 bg-transparent p-0 text-left"
-              onClick={() => navigate('/')}
+              onClick={() => navigate("/")}
               type="button"
             >
               <Gem size={20} color="#B08A4A" />
@@ -112,25 +139,43 @@ const CustomerLayout = () => {
                   selectedKeys={[selectedKey]}
                   items={customerNavItems}
                   onClick={onMenuClick}
-                  style={{ minWidth: 520, borderBottom: 'none', justifyContent: 'flex-end' }}
+                  style={{
+                    minWidth: 520,
+                    borderBottom: "none",
+                    justifyContent: "flex-end",
+                  }}
                 />
                 <Space>
-                  <Button icon={<ShoppingBag size={16} />} onClick={() => navigate('/cart')}>
+                  <Button
+                    icon={<ShoppingBag size={16} />}
+                    onClick={() => navigate("/cart")}
+                  >
                     Cart
                   </Button>
                   {isAuthenticated ? (
                     <>
-                      <Button icon={<UserRound size={16} />} onClick={() => navigate('/profile')}>
+                      <Button
+                        icon={<UserRound size={16} />}
+                        onClick={() => navigate("/profile")}
+                      >
                         Profile
                       </Button>
-                      <Button icon={<LogOut size={16} />} onClick={handleSignOut}>
+                      <Button
+                        icon={<LogOut size={16} />}
+                        onClick={handleSignOut}
+                      >
                         Sign out
                       </Button>
                     </>
                   ) : (
                     <>
-                      <Button onClick={() => navigate('/signin')}>Sign in</Button>
-                      <Button type="primary" onClick={() => navigate('/signup')}>
+                      <Button onClick={() => navigate("/signin")}>
+                        Sign in
+                      </Button>
+                      <Button
+                        type="primary"
+                        onClick={() => navigate("/signup")}
+                      >
                         Sign up
                       </Button>
                     </>
@@ -138,7 +183,10 @@ const CustomerLayout = () => {
                 </Space>
               </div>
             ) : (
-              <Button icon={<MenuIcon size={18} />} onClick={() => setDrawerOpen(true)} />
+              <Button
+                icon={<MenuIcon size={18} />}
+                onClick={() => setDrawerOpen(true)}
+              />
             )}
           </div>
         </Header>
@@ -150,19 +198,27 @@ const CustomerLayout = () => {
           onClose={() => setDrawerOpen(false)}
           width={300}
         >
-          <Space direction="vertical" size={14} style={{ width: '100%' }}>
+          <Space direction="vertical" size={14} style={{ width: "100%" }}>
             <Menu
               mode="inline"
               selectedKeys={[selectedKey]}
               items={customerNavItems}
               onClick={onMenuClick}
             />
-            <Button block icon={<ShoppingBag size={16} />} onClick={() => onMenuClick({ key: '/cart' })}>
+            <Button
+              block
+              icon={<ShoppingBag size={16} />}
+              onClick={() => onMenuClick({ key: "/cart" })}
+            >
               Cart
             </Button>
             {isAuthenticated ? (
               <>
-                <Button block icon={<UserRound size={16} />} onClick={() => onMenuClick({ key: '/profile' })}>
+                <Button
+                  block
+                  icon={<UserRound size={16} />}
+                  onClick={() => onMenuClick({ key: "/profile" })}
+                >
                   Profile
                 </Button>
                 <Button
@@ -178,10 +234,14 @@ const CustomerLayout = () => {
               </>
             ) : (
               <>
-                <Button block onClick={() => onMenuClick({ key: '/signin' })}>
+                <Button block onClick={() => onMenuClick({ key: "/signin" })}>
                   Sign in
                 </Button>
-                <Button block type="primary" onClick={() => onMenuClick({ key: '/signup' })}>
+                <Button
+                  block
+                  type="primary"
+                  onClick={() => onMenuClick({ key: "/signup" })}
+                >
                   Sign up
                 </Button>
               </>
@@ -195,10 +255,10 @@ const CustomerLayout = () => {
 
         <Footer style={{ padding: 32 }}>
           <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-3 text-[#F5F6F7] md:flex-row md:items-center md:justify-between">
-            <Text style={{ color: '#F5F6F7' }}>
+            <Text style={{ color: "#F5F6F7" }}>
               Aurelia Jewels Commerce Skeleton - Customer Portal
             </Text>
-            <Text style={{ color: '#B08A4A' }}>
+            <Text style={{ color: "#B08A4A" }}>
               Premium experiences with secure checkout flows
             </Text>
           </div>
