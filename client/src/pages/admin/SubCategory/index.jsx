@@ -4,10 +4,11 @@ import React, { useEffect, useState } from "react";
 import SubCategoryAPI from "../../../api/subCategoryApi";
 import { Link, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import { useAuth } from "@/contexts/AuthContext";
+import { useSelector } from "react-redux";
 
 const SubCategory = () => {
-  const { accessToken } = useAuth();
+  const user = useSelector((state) => state.user);
+  const accessToken = user?.token;
   const navigate = useNavigate();
   const [subCategories, setSubCategories] = useState([]);
 

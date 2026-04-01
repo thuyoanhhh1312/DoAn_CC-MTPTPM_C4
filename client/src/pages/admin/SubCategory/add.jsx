@@ -6,10 +6,11 @@ import { useNavigate } from "react-router-dom";
 import subCategoryApi from "../../../api/subCategoryApi";
 import categoryApi from "../../../api/categoryApi";
 import Swal from "sweetalert2";
-import { useAuth } from "@/contexts/AuthContext";
+import { useSelector } from "react-redux";
 
 const AddSubCategory = () => {
-  const { accessToken } = useAuth();
+  const user = useSelector((state) => state.user);
+  const accessToken = user?.token;
   const [subCategoryName, setSubCategoryName] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
