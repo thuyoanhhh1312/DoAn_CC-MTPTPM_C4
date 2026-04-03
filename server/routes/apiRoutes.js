@@ -17,6 +17,7 @@ import {
 import * as authController from "../controllers/authController.js";
 import * as customerController from "../controllers/customerController.js";
 import * as productController from "../controllers/productController.js";
+import * as searchController from "../controllers/searchController.js";
 
 import * as categoryController from "../controllers/categoryController.js";
 import * as subCategoryController from "../controllers/subCategoryController.js";
@@ -170,5 +171,7 @@ router.delete(
   isAdmin,
   subCategoryController.deleteSubCategory,
 );
+router.get("/search-product", searchController.searchProducts);
+router.get("/quick-search-products", searchController.quickSearchProducts);
 
 export default router;
