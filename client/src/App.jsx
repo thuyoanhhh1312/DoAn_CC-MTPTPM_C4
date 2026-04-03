@@ -8,6 +8,7 @@ import AddSubCategory from "./pages/admin/SubCategory/add";
 import EditSubCategory from "./pages/admin/SubCategory/edit";
 
 import Home from "./pages/Home";
+import ProductDetail from "./pages/ProductDetail";
 
 import ProfilePage from "./pages/ProfilePage";
 import OrderHistoryPage from "./pages/OrderHistoryPage";
@@ -77,6 +78,7 @@ function App() {
           />
         </Route>
         <Route path="/" element={<Home />} />
+        <Route path="/:slug" element={<ProductDetail />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
