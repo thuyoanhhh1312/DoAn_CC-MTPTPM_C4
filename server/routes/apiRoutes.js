@@ -59,6 +59,35 @@ router.put(
   authenticateToken,
   customerController.updateCustomerProfile,
 );
+
+// Category routes
+router.get("/categories", categoryController.getAllCategories);
+router.get("/categories/:id", categoryController.getCategoryById);
+// ❌ Chỉ Admin được CRUD category
+router.post(
+  "/categories",
+  authenticateToken,
+  isAdmin,
+  categoryController.createCategory,
+);
+router.put(
+  "/categories/:id",
+  authenticateToken,
+  isAdmin,
+  categoryController.updateCategory,
+);
+router.patch(
+  "/categories/:id/open-selling",
+  authenticateToken,
+  isAdmin,
+  categoryController.openCategorySelling,
+);
+router.delete(
+  "/categories/:id",
+  authenticateToken,
+  isAdmin,
+  categoryController.deleteCategory,
+);
 router.get("/customers/by-user/:userId", customerController.getCustomer);
 
 router.get("/auth/current-user", authenticateToken, authController.currentUser);
@@ -66,10 +95,6 @@ router.get("/auth/me", authenticateToken, authController.currentUser);
 router.post("/auth/send-otp", authController.sendOtp);
 router.post("/auth/verify-otp", authController.verifyOtp);
 router.post("/auth/reset-password", authController.resetPassword);
-
-// Category routes
-router.get("/categories", categoryController.getAllCategories);
-router.get("/categories/:id", categoryController.getCategoryById);
 
 // SubCategory routes
 router.get("/subcategories", subCategoryController.getAllSubCategories);
