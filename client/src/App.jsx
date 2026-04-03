@@ -6,9 +6,11 @@ import CustomerLayout from "./layout/CustomerLayout";
 import SubCategory from "./pages/admin/SubCategory/index";
 import AddSubCategory from "./pages/admin/SubCategory/add";
 import EditSubCategory from "./pages/admin/SubCategory/edit";
-import HomePage from "./pages/customer/HomePage";
-import ProfilePage from "./pages/customer/ProfilePage";
-import OrderHistoryPage from "./pages/customer/OrderHistoryPage";
+
+import Home from "./pages/Home";
+
+import ProfilePage from "./pages/ProfilePage";
+import OrderHistoryPage from "./pages/OrderHistoryPage";
 import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
 import { useDispatch } from "react-redux";
@@ -42,8 +44,6 @@ function App() {
         </Route>
 
         <Route element={<CustomerLayout />}>
-          <Route path="/" element={<HomePage />} />
-
           <Route element={<RequireAuth />}>
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/order-history" element={<OrderHistoryPage />} />
@@ -76,7 +76,7 @@ function App() {
             }
           />
         </Route>
-
+        <Route path="/" element={<Home />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
