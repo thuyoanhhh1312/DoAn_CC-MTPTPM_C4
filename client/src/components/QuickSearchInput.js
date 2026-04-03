@@ -29,30 +29,39 @@ const QuickSearchInput = ({
         onKeyDown={onKeyDown}
         InputProps={{
           style: {
-            borderRadius: 14,
+            borderRadius: 16,
             backgroundColor: "#fff",
-            fontSize: 18,
-            padding: "2px 8px",
+            fontSize: 16,
+            padding: "4px 12px",
+            fontFamily: "'Inter', sans-serif",
           },
           startAdornment: (
             <InputAdornment position="start">
-              <SearchIcon sx={{ color: "#C48C46" }} />
+              <SearchIcon sx={{ color: "#c48c46", fontSize: 22 }} />
             </InputAdornment>
           ),
         }}
         sx={{
           "& .MuiOutlinedInput-root": {
-            fontSize: 18,
+            fontSize: 16,
+            boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)",
             "& fieldset": {
-              borderColor: "#c4c4c4",
-            },
-            "&:hover fieldset": {
-              borderColor: "#c4c4c4",
-            },
-            "&.Mui-focused fieldset": {
-              borderColor: "#c4c4c4",
+              borderColor: "#e8e4de",
               borderWidth: 1.5,
             },
+            "&:hover fieldset": {
+              borderColor: "#c48c46",
+            },
+            "&.Mui-focused fieldset": {
+              borderColor: "#c48c46",
+              borderWidth: 2,
+              boxShadow: "0 0 0 3px rgba(196, 140, 70, 0.1)",
+            },
+          },
+          "& .MuiInputBase-input::placeholder": {
+            color: "#9ca3af",
+            opacity: 1,
+            fontStyle: "normal",
           },
         }}
       />

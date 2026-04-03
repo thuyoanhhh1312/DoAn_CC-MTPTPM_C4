@@ -6,7 +6,7 @@ import CustomerLayout from "./layout/CustomerLayout";
 import SubCategory from "./pages/admin/SubCategory/index";
 import AddSubCategory from "./pages/admin/SubCategory/add";
 import EditSubCategory from "./pages/admin/SubCategory/edit";
-
+import Search from "./pages/Search";
 import Home from "./pages/Home";
 import ProductDetail from "./pages/ProductDetail";
 
@@ -78,6 +78,7 @@ function App() {
           />
         </Route>
         <Route path="/" element={<Home />} />
+        <Route path="/search" element={<Search />} />
         <Route path="/:slug" element={<ProductDetail />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
