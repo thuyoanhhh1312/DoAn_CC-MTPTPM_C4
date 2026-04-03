@@ -20,6 +20,7 @@
     "multer-storage-cloudinary": "^4.0.0",
     "mysql2": "^3.20.0",
     "sequelize": "^6.37.8",
+    "slugify": "^1.6.9",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
