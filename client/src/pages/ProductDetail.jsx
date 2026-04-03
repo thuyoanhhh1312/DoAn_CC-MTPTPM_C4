@@ -252,8 +252,18 @@ const ProductDetail = () => {
             <Link to="/" className="hover:text-gold-600 transition-premium">
               Trang chủ
             </Link>
-            <svg className="w-3.5 h-3.5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            <svg
+              className="w-3.5 h-3.5 text-gray-300"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M8.25 4.5l7.5 7.5-7.5 7.5"
+              />
             </svg>
             {product.Category && (
               <>
@@ -263,8 +273,18 @@ const ProductDetail = () => {
                 >
                   {product.Category.category_name}
                 </Link>
-                <svg className="w-3.5 h-3.5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                <svg
+                  className="w-3.5 h-3.5 text-gray-300"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                  />
                 </svg>
               </>
             )}
@@ -313,8 +333,18 @@ const ProductDetail = () => {
                     {/* Zoom overlay */}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
                       <div className="bg-white/90 backdrop-blur-sm rounded-full p-3 shadow-elegant">
-                        <svg className="w-5 h-5 text-gold-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                        <svg
+                          className="w-5 h-5 text-gold-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"
+                          />
                         </svg>
                       </div>
                     </div>
@@ -330,7 +360,9 @@ const ProductDetail = () => {
                     : "bg-red-50 text-red-600 border border-red-200"
                 }`}
               >
-                <span className={`w-2 h-2 rounded-full ${product.quantity > 0 ? "bg-green-500 animate-pulse" : "bg-red-400"}`} />
+                <span
+                  className={`w-2 h-2 rounded-full ${product.quantity > 0 ? "bg-green-500 animate-pulse" : "bg-red-400"}`}
+                />
                 {product.quantity > 0 ? "Còn hàng" : "Hết hàng"}
               </div>
             </div>
@@ -381,7 +413,8 @@ const ProductDetail = () => {
             {product.Category && (
               <span className="inline-flex items-center self-start px-3 py-1 rounded-full bg-gold-50 text-gold-700 text-xs font-semibold mb-3 tracking-wide uppercase">
                 {product.Category.category_name}
-                {product.SubCategory && ` · ${product.SubCategory.subcategory_name}`}
+                {product.SubCategory &&
+                  ` · ${product.SubCategory.subcategory_name}`}
               </span>
             )}
 
@@ -415,13 +448,17 @@ const ProductDetail = () => {
                 </span>
               </div>
             ) : (
-              <p className="text-sm text-gray-400 italic mb-5">Chưa có đánh giá</p>
+              <p className="text-sm text-gray-400 italic mb-5">
+                Chưa có đánh giá
+              </p>
             )}
 
             {/* Price Section */}
             {product.quantity > 0 ? (
               <div className="bg-gradient-to-r from-gold-50 to-transparent rounded-2xl p-6 mb-6 border border-gold-100">
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Giá bán</p>
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">
+                  Giá bán
+                </p>
                 <p className="font-heading text-3xl sm:text-4xl font-bold text-gold-600 mb-2">
                   {formatPrice(product.price)}
                 </p>
@@ -435,7 +472,9 @@ const ProductDetail = () => {
               </div>
             ) : (
               <div className="bg-red-50/50 rounded-2xl p-6 mb-6 border border-red-100">
-                <p className="text-2xl font-bold text-red-500 font-heading">Hết hàng</p>
+                <p className="text-2xl font-bold text-red-500 font-heading">
+                  Hết hàng
+                </p>
                 <p className="text-sm text-red-400 mt-1">
                   Sản phẩm này hiện không có sẵn
                 </p>
@@ -517,44 +556,58 @@ const ProductDetail = () => {
         </div>
 
         {/* ===== SPECIFICATIONS SECTION ===== */}
-        {product?.product_details && typeof product.product_details === "string" && (() => {
-          try {
-            const details = JSON.parse(product.product_details);
-            if (!details || Object.keys(details).length === 0) return null;
-            return (
-              <div className="mb-12 bg-white rounded-2xl border border-gray-100 shadow-card p-6 sm:p-8">
-                <h2 className="font-heading text-xl sm:text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                  <span className="w-10 h-10 rounded-full bg-gold-50 flex items-center justify-center text-lg">📦</span>
-                  Thông số kỹ thuật
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Object.entries(details).map(([key, value], idx) => (
-                    <div
-                      key={idx}
-                      className="flex gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100 hover:shadow-card hover:border-gold-100 transition-all duration-300"
-                    >
-                      <div className="w-9 h-9 rounded-lg bg-gold-50 flex items-center justify-center text-base flex-shrink-0">
-                        {["Loại đá", "Chất liệu", "Màu"].some((k) => key.includes(k))
-                          ? "💎"
-                          : ["Kích thước", "Cân nặng"].some((k) => key.includes(k))
-                            ? "⚖️"
-                            : ["Phương pháp", "Bảo hành"].some((k) => key.includes(k))
-                              ? "🛡️"
-                              : "✦"}
+        {product?.product_details &&
+          typeof product.product_details === "string" &&
+          (() => {
+            try {
+              const details = JSON.parse(product.product_details);
+              if (!details || Object.keys(details).length === 0) return null;
+              return (
+                <div className="mb-12 bg-white rounded-2xl border border-gray-100 shadow-card p-6 sm:p-8">
+                  <h2 className="font-heading text-xl sm:text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                    <span className="w-10 h-10 rounded-full bg-gold-50 flex items-center justify-center text-lg">
+                      📦
+                    </span>
+                    Thông số kỹ thuật
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {Object.entries(details).map(([key, value], idx) => (
+                      <div
+                        key={idx}
+                        className="flex gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100 hover:shadow-card hover:border-gold-100 transition-all duration-300"
+                      >
+                        <div className="w-9 h-9 rounded-lg bg-gold-50 flex items-center justify-center text-base flex-shrink-0">
+                          {["Loại đá", "Chất liệu", "Màu"].some((k) =>
+                            key.includes(k),
+                          )
+                            ? "💎"
+                            : ["Kích thước", "Cân nặng"].some((k) =>
+                                  key.includes(k),
+                                )
+                              ? "⚖️"
+                              : ["Phương pháp", "Bảo hành"].some((k) =>
+                                    key.includes(k),
+                                  )
+                                ? "🛡️"
+                                : "✦"}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                            {key}
+                          </p>
+                          <p className="text-sm font-medium text-gray-800 mt-0.5 break-words">
+                            {String(value)}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{key}</p>
-                        <p className="text-sm font-medium text-gray-800 mt-0.5 break-words">{String(value)}</p>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            );
-          } catch (e) {
-            return null;
-          }
-        })()}
+              );
+            } catch (e) {
+              return null;
+            }
+          })()}
 
         {/* ===== TABS: Description / Policy / FAQ ===== */}
         <div className="mb-12">
@@ -613,21 +666,29 @@ const ProductDetail = () => {
                     {
                       icon: "🚚",
                       title: "Chính sách giao hàng",
-                      content: "Miễn phí giao hàng trong 3 giờ cho các đơn hàng trong khu vực nội thành. Nếu giao trễ, tặng ngay voucher 100,000đ cho lần mua hàng tiếp theo.",
+                      content:
+                        "Miễn phí giao hàng trong 3 giờ cho các đơn hàng trong khu vực nội thành. Nếu giao trễ, tặng ngay voucher 100,000đ cho lần mua hàng tiếp theo.",
                     },
                     {
                       icon: "🔄",
                       title: "Chính sách đổi trả",
-                      content: "Áp dụng đổi 48 giờ đối với trang sức vàng và 72 giờ đối với trang sức bạc (chỉ đổi size). Tính từ lúc cửa hàng xuất hóa đơn hoặc khi khách hàng nhận được sản phẩm.",
+                      content:
+                        "Áp dụng đổi 48 giờ đối với trang sức vàng và 72 giờ đối với trang sức bạc (chỉ đổi size). Tính từ lúc cửa hàng xuất hóa đơn hoặc khi khách hàng nhận được sản phẩm.",
                     },
                     {
                       icon: "💳",
                       title: "Phương thức thanh toán",
                       content: null,
-                      list: ["Thanh toán khi nhận hàng (COD)", "Thanh toán qua VNPay"],
+                      list: [
+                        "Thanh toán khi nhận hàng (COD)",
+                        "Thanh toán qua VNPay",
+                      ],
                     },
                   ].map((item, idx) => (
-                    <div key={idx} className="flex gap-4 p-5 bg-gray-50 rounded-xl border border-gray-100">
+                    <div
+                      key={idx}
+                      className="flex gap-4 p-5 bg-gray-50 rounded-xl border border-gray-100"
+                    >
                       <div className="w-11 h-11 rounded-full bg-gold-50 flex items-center justify-center text-xl flex-shrink-0">
                         {item.icon}
                       </div>
@@ -636,7 +697,9 @@ const ProductDetail = () => {
                           {item.title}
                         </h4>
                         {item.content && (
-                          <p className="text-sm text-gray-600 leading-relaxed">{item.content}</p>
+                          <p className="text-sm text-gray-600 leading-relaxed">
+                            {item.content}
+                          </p>
                         )}
                         {item.list && (
                           <ul className="text-sm text-gray-600 space-y-1.5 mt-1">
@@ -684,9 +747,16 @@ const ProductDetail = () => {
                         <span>{item.q}</span>
                         <svg
                           className="w-4 h-4 text-gold-500 flex-shrink-0 transition-transform duration-300 group-open:rotate-180"
-                          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19 9l-7 7-7-7"
+                          />
                         </svg>
                       </summary>
                       <div className="px-5 pb-4 text-sm text-gray-600 leading-relaxed border-t border-gray-50 pt-3">
@@ -704,7 +774,9 @@ const ProductDetail = () => {
         <section className="bg-white rounded-2xl border border-gray-100 shadow-card p-6 sm:p-8 mb-12">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <h2 className="font-heading text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-3">
-              <span className="w-10 h-10 rounded-full bg-gold-50 flex items-center justify-center text-lg">⭐</span>
+              <span className="w-10 h-10 rounded-full bg-gold-50 flex items-center justify-center text-lg">
+                ⭐
+              </span>
               Đánh giá sản phẩm
             </h2>
             {user && (
@@ -712,8 +784,18 @@ const ProductDetail = () => {
                 onClick={() => setIsReviewModalOpen(true)}
                 className="px-5 py-2.5 bg-gold-gradient text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-premium flex items-center gap-2 shadow-elegant"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
+                  />
                 </svg>
                 Viết đánh giá
               </button>

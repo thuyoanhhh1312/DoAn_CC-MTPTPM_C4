@@ -21,6 +21,7 @@ import * as searchController from "../controllers/searchController.js";
 
 import * as categoryController from "../controllers/categoryController.js";
 import * as subCategoryController from "../controllers/subCategoryController.js";
+import * as productReviewController from "../controllers/productReviewController.js";
 
 import * as tagController from "../controllers/tagController.js";
 router.get("/tags", tagController.getAllTags);
@@ -174,4 +175,61 @@ router.delete(
 router.get("/search-product", searchController.searchProducts);
 router.get("/quick-search-products", searchController.quickSearchProducts);
 
+// Product Review
+router.get(
+  "/products/:id/reviews",
+  productReviewController.getReviewsByProductId,
+);
+router.get(
+  "/products/:id/reviews/summary",
+  productReviewController.getReviewSummary,
+);
+router.get(
+  "/products/:id/reviews/summary-detailed",
+  productReviewController.getReviewSummaryWithSuspicious,
+);
+
+// PUBLIC: Only rating distribution (cho khách hàng)
+router.get(
+  "/products/:id/reviews/summary-public",
+  productReviewController.getReviewSummaryPublic,
+);
+
+// ADMIN: Full sentiment + rating + suspicious (cho quản lý)
+router.get(
+  "/admin/products/:id/reviews/summary",
+  authenticateToken,
+  isAdmin,
+  productReviewController.getReviewSummaryPublicDetailed,
+);
+
+// ADMIN: Lấy tất cả reviews từ tất cả sản phẩm (cho admin dashboard)
+router.get(
+  "/admin/reviews",
+  authenticateToken,
+  isAdminOrStaff,
+  productReviewController.getAllReviewsAdmin,
+);
+
+// ADMIN: Thống kê cảm xúc theo sản phẩm
+router.get(
+  "/admin/reviews/sentiment-stats",
+  authenticateToken,
+  isAdminOrStaff,
+  productReviewController.getSentimentStatsByProduct,
+);
+
+// ADMIN: Lấy reviews bất thường
+router.get(
+  "/admin/reviews/suspicious",
+  authenticateToken,
+  isAdminOrStaff,
+  productReviewController.getSuspiciousReviews,
+);
+
+router.post(
+  "/products/:id/reviews",
+  authenticateToken,
+  productReviewController.createReview,
+);
 export default router;
