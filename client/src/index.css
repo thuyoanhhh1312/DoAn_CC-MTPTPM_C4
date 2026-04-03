@@ -4,14 +4,16 @@
 
 :root {
   color-scheme: light;
-  --color-primary: #12332b;
-  --color-accent: #b08a4a;
-  --color-bg: #f5f6f7;
+  --color-primary: #1a1a2e;
+  --color-accent: #c48c46;
+  --color-accent-light: #e5c89e;
+  --color-bg: #faf7f2;
   --color-surface: #ffffff;
   --color-text: #1a1d21;
-  --color-border: #e6e8ec;
-  --color-primary-soft: #1a4439;
-  --color-primary-deep: #0f2b24;
+  --color-text-muted: #6b7280;
+  --color-border: #e8e4de;
+  --color-gold-gradient-start: #c48c46;
+  --color-gold-gradient-end: #e5c89e;
 }
 
 * {
@@ -22,19 +24,57 @@ body {
   margin: 0;
   min-height: 100vh;
   background: var(--color-bg);
-  font-family: 'Manrope', sans-serif;
+  font-family: 'Inter', sans-serif;
   color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
   min-height: 100vh;
 }
 
+/* ========= UTILITY CLASSES ========= */
+
+/* Gold gradient text */
+.text-gold-gradient {
+  background: linear-gradient(135deg, var(--color-gold-gradient-start), var(--color-gold-gradient-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Gold gradient background */
+.bg-gold-gradient {
+  background: linear-gradient(135deg, var(--color-gold-gradient-start), var(--color-gold-gradient-end));
+}
+
+/* Elegant divider line */
+.divider-gold {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+  border: none;
+}
+
+/* Smooth transitions for interactive elements */
+.transition-premium {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Glass effect */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ========= PORTAL STYLES ========= */
+
 .portal-customer {
   min-height: 100vh;
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: 'Manrope', sans-serif;
+  font-family: 'Inter', sans-serif;
 }
 
 .portal-customer h1,
@@ -58,4 +98,44 @@ body {
 .portal-admin h4,
 .portal-admin .portal-title {
   font-family: 'Sora', sans-serif;
+}
+
+/* ========= SCROLLBAR STYLING ========= */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c4c4c4;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+
+/* ========= CAROUSEL OVERRIDES ========= */
+.carousel .slide {
+  background: transparent !important;
+}
+
+.carousel .control-dots .dot {
+  background: var(--color-accent) !important;
+  box-shadow: none !important;
+  width: 10px !important;
+  height: 10px !important;
+}
+
+/* ========= ANIMATIONS ========= */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
 }
