@@ -1,5 +1,10 @@
 // routes/apiRoutes.js
 import express from "express";
+import {
+  getSimilarProducts,
+  filterProducts,
+} from "../controllers/productController.js";
+import upload from "../middlewares/upload.js";
 
 const router = express.Router();
 
@@ -11,6 +16,8 @@ import {
 } from "../middlewares/auth.js";
 import * as authController from "../controllers/authController.js";
 import * as customerController from "../controllers/customerController.js";
+import * as productController from "../controllers/productController.js";
+
 import * as categoryController from "../controllers/categoryController.js";
 import * as subCategoryController from "../controllers/subCategoryController.js";
 
@@ -58,6 +65,51 @@ router.put(
   "/customers/profile",
   authenticateToken,
   customerController.updateCustomerProfile,
+);
+
+// Product routes
+router.get("/products", productController.getAllProducts);
+router.get(
+  "/products/with-review-summary",
+  productController.getAllProductsWithRatingSummary,
+);
+router.get(
+  "/product-by-category",
+  productController.getProductsByCategoryWithRatingSummary,
+);
+router.get("/products/similar", getSimilarProducts);
+router.get("/products/filter", filterProducts);
+router.get("/products/:id", productController.getProductById);
+router.get("/get-product-by-slug/:slug", productController.getProductBySlug);
+// ✅ Staff & Admin tạo/sửa product
+router.post(
+  "/products",
+  authenticateToken,
+  isAdminOrStaff,
+  upload.array("images", 5),
+  productController.createProduct,
+);
+router.put(
+  "/products/:id",
+  authenticateToken,
+  isAdminOrStaff,
+  upload.array("images", 5),
+  productController.updateProduct,
+);
+// ❌ Chỉ Admin xóa product
+router.delete(
+  "/products/:id",
+  authenticateToken,
+  isAdmin,
+  productController.deleteProduct,
+);
+router.get(
+  "/get-category-subcategory",
+  productController.getCategoryesWithSubCategory,
+);
+router.get(
+  "/get-product-top-rated-by-sentiment",
+  productController.getTopRatedProductsBySentiment,
 );
 
 // Category routes
