@@ -1,5 +1,8 @@
 // routes/apiRoutes.js
 import express from "express";
+import fs from "fs";
+import path from "path";
+import multer from "multer";
 import {
   getSimilarProducts,
   filterProducts,
@@ -34,6 +37,35 @@ import * as dashboardController from "../controllers/dashboardController.js";
 
 import * as tagController from "../controllers/tagController.js";
 router.get("/tags", tagController.getAllTags);
+
+const blogUploadDir = path.join(process.cwd(), "uploads", "blog");
+if (!fs.existsSync(blogUploadDir)) {
+  fs.mkdirSync(blogUploadDir, { recursive: true });
+}
+
+const blogImageUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, blogUploadDir),
+    filename: (_req, file, cb) => {
+      const safeName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, "_");
+      cb(null, `${Date.now()}-${safeName}`);
+    },
+  }),
+});
+
+// CKEditor image upload endpoint (used by RichTextEditor upload adapter)
+router.post(
+  "/uploads/blog-image",
+  blogImageUpload.single("upload"),
+  (req, res) => {
+    if (!req.file?.filename) {
+      return res.status(400).json({ message: "Upload thất bại" });
+    }
+
+    const publicUrl = `${req.protocol}://${req.get("host")}/uploads/blog/${req.file.filename}`;
+    return res.json({ url: publicUrl });
+  },
+);
 
 // Auth routes
 router.post("/auth/register", authController.registerUser);
@@ -254,6 +286,12 @@ router.post(
   authenticateToken,
   isAdminOrStaff,
   articleCategoryController.create,
+);
+router.get(
+  "/admin/news-categories/:id",
+  authenticateToken,
+  isAdminOrStaff,
+  articleCategoryController.getById,
 );
 router.put(
   "/admin/news-categories/:id",
