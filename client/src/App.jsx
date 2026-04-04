@@ -18,6 +18,9 @@ import { useDispatch } from "react-redux";
 import AdminOrStaffRoute from "./components/routers/AdminOrStaffRoute";
 import RequireAuth from "./components/guards/RequireAuth";
 import RequireGuest from "./components/guards/RequireGuest";
+import Campaign from "./pages/admin/Campaign/index";
+import AddCampaign from "./pages/admin/Campaign/add";
+import EditCampaign from "./pages/admin/Campaign/edit";
 function App() {
   const dispatch = useDispatch();
 
@@ -73,6 +76,32 @@ function App() {
             element={
               <AdminOrStaffRoute>
                 <EditSubCategory />
+              </AdminOrStaffRoute>
+            }
+          />
+
+          {/* Campaigns */}
+          <Route
+            path="/admin/campaigns"
+            element={
+              <AdminOrStaffRoute>
+                <Campaign />
+              </AdminOrStaffRoute>
+            }
+          />
+          <Route
+            path="/admin/campaigns/add"
+            element={
+              <AdminOrStaffRoute>
+                <AddCampaign />
+              </AdminOrStaffRoute>
+            }
+          />
+          <Route
+            path="/admin/campaigns/edit/:id"
+            element={
+              <AdminOrStaffRoute>
+                <EditCampaign />
               </AdminOrStaffRoute>
             }
           />
