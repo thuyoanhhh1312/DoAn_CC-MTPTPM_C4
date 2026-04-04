@@ -5,6 +5,7 @@ import {
   filterProducts,
 } from "../controllers/productController.js";
 import upload from "../middlewares/upload.js";
+import * as articleController from "../controllers/articleController.js";
 
 const router = express.Router();
 
@@ -231,5 +232,55 @@ router.post(
   "/products/:id/reviews",
   authenticateToken,
   productReviewController.createReview,
+);
+
+// Public
+router.get("/news", articleController.getNews);
+router.get("/news/:slug", articleController.getNewsBySlug);
+
+// Admin/Staff - GET tất cả bài (không filter status)
+router.get(
+  "/admin/news",
+  authenticateToken,
+  isAdminOrStaff,
+  async (req, res, next) => {
+    // Gọi getNews nhưng với status = null để lấy tất cả
+    req.query.status = null;
+    articleController.getNews(req, res, next);
+  },
+);
+
+// Admin/Staff - GET single bài by ID (for edit page)
+router.get(
+  "/admin/news/:id",
+  authenticateToken,
+  isAdminOrStaff,
+  articleController.getNewsById,
+);
+
+// Admin/Staff - POST tạo bài
+router.post(
+  "/admin/news",
+  authenticateToken,
+  isAdminOrStaff,
+  upload.single("thumbnail"), // bật nếu có upload ảnh
+  // validateRequest(createArticleSchema), // TODO: debug validation
+  articleController.createNews,
+);
+
+router.put(
+  "/admin/news/:id",
+  authenticateToken,
+  isAdminOrStaff,
+  upload.single("thumbnail"),
+  // validateRequest(updateArticleSchema), // TODO: debug validation
+  articleController.updateNews,
+);
+
+router.delete(
+  "/admin/news/:id",
+  authenticateToken,
+  isAdminOrStaff,
+  articleController.deleteNews,
 );
 export default router;
