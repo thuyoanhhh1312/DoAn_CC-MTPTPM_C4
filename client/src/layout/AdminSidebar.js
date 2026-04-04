@@ -10,7 +10,6 @@ import LocalOfferIcon from '@mui/icons-material/LocalOffer'; // icon khuyến m�
 import ListAltIcon from '@mui/icons-material/ListAlt'; // icon đơn hàng
 import PeopleIcon from '@mui/icons-material/People'; // icon khách hàng
 import AccountCircleIcon from '@mui/icons-material/AccountCircle'; // user profile
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance'; // bank account
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import NewspaperIcon from '@mui/icons-material/Newspaper'; // icon tin tức
@@ -79,12 +78,7 @@ const allNavItems = [
     path: '/admin/user',
     rolesAllowed: [1],
   },
-  {
-    icon: <AccountBalanceIcon fontSize="medium" />,
-    name: 'Bank Account',
-    path: '/admin/bank-accounts',
-    rolesAllowed: [1], // chỉ admin xem được
-  },
+
 ];
 
 // Hàm lọc menu theo role (giữ nguyên)
@@ -171,20 +165,17 @@ const AdminSidebar = () => {
           {nav.subItems ? (
             <button
               onClick={() => handleSubmenuToggle(index, menuType)}
-              className={`menu-item group ${
-                openSubmenu?.type === menuType && openSubmenu?.index === index
-                  ? 'menu-item-active'
-                  : 'menu-item-inactive'
-              } cursor-pointer ${
-                !isExpanded && !isHovered ? 'lg:justify-center' : 'lg:justify-start'
-              }`}
+              className={`menu-item group ${openSubmenu?.type === menuType && openSubmenu?.index === index
+                ? 'menu-item-active'
+                : 'menu-item-inactive'
+                } cursor-pointer ${!isExpanded && !isHovered ? 'lg:justify-center' : 'lg:justify-start'
+                }`}
             >
               <span
-                className={`menu-item-icon-size ${
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
-                    ? 'menu-item-icon-active'
-                    : 'menu-item-icon-inactive'
-                }`}
+                className={`menu-item-icon-size ${openSubmenu?.type === menuType && openSubmenu?.index === index
+                  ? 'menu-item-icon-active'
+                  : 'menu-item-icon-inactive'
+                  }`}
               >
                 {nav.icon}
               </span>
@@ -193,11 +184,10 @@ const AdminSidebar = () => {
               )}
               {(isExpanded || isHovered || isMobileOpen) && (
                 <ExpandMoreIcon
-                  className={`ml-auto transition-transform duration-200 ${
-                    openSubmenu?.type === menuType && openSubmenu?.index === index
-                      ? 'rotate-180 text-brand-500'
-                      : ''
-                  }`}
+                  className={`ml-auto transition-transform duration-200 ${openSubmenu?.type === menuType && openSubmenu?.index === index
+                    ? 'rotate-180 text-brand-500'
+                    : ''
+                    }`}
                 />
               )}
             </button>
@@ -205,14 +195,12 @@ const AdminSidebar = () => {
             nav.path && (
               <Link
                 to={nav.path}
-                className={`menu-item group ${
-                  isActive(nav.path) ? 'menu-item-active' : 'menu-item-inactive'
-                }`}
+                className={`menu-item group ${isActive(nav.path) ? 'menu-item-active' : 'menu-item-inactive'
+                  }`}
               >
                 <span
-                  className={`menu-item-icon-size ${
-                    isActive(nav.path) ? 'menu-item-icon-active' : 'menu-item-icon-inactive'
-                  }`}
+                  className={`menu-item-icon-size ${isActive(nav.path) ? 'menu-item-icon-active' : 'menu-item-icon-inactive'
+                    }`}
                 >
                   {nav.icon}
                 </span>
@@ -240,32 +228,29 @@ const AdminSidebar = () => {
                   <li key={subItem.name}>
                     <Link
                       to={subItem.path}
-                      className={`menu-dropdown-item ${
-                        isActive(subItem.path)
-                          ? 'menu-dropdown-item-active'
-                          : 'menu-dropdown-item-inactive'
-                      }`}
+                      className={`menu-dropdown-item ${isActive(subItem.path)
+                        ? 'menu-dropdown-item-active'
+                        : 'menu-dropdown-item-inactive'
+                        }`}
                     >
                       {subItem.name}
                       <span className="flex items-center gap-1 ml-auto">
                         {subItem.new && (
                           <span
-                            className={`ml-auto ${
-                              isActive(subItem.path)
-                                ? 'menu-dropdown-badge-active'
-                                : 'menu-dropdown-badge-inactive'
-                            } menu-dropdown-badge`}
+                            className={`ml-auto ${isActive(subItem.path)
+                              ? 'menu-dropdown-badge-active'
+                              : 'menu-dropdown-badge-inactive'
+                              } menu-dropdown-badge`}
                           >
                             new
                           </span>
                         )}
                         {subItem.pro && (
                           <span
-                            className={`ml-auto ${
-                              isActive(subItem.path)
-                                ? 'menu-dropdown-badge-active'
-                                : 'menu-dropdown-badge-inactive'
-                            } menu-dropdown-badge`}
+                            className={`ml-auto ${isActive(subItem.path)
+                              ? 'menu-dropdown-badge-active'
+                              : 'menu-dropdown-badge-inactive'
+                              } menu-dropdown-badge`}
                           >
                             pro
                           </span>
@@ -327,9 +312,8 @@ const AdminSidebar = () => {
           <div className="flex flex-col gap-4">
             <div>
               <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                  !isExpanded && !isHovered ? 'lg:justify-center' : 'justify-start'
-                }`}
+                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${!isExpanded && !isHovered ? 'lg:justify-center' : 'justify-start'
+                  }`}
               >
                 {isExpanded || isHovered || isMobileOpen ? (
                   'Menu'
