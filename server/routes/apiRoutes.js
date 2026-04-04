@@ -5,7 +5,13 @@ import {
   filterProducts,
 } from "../controllers/productController.js";
 import upload from "../middlewares/upload.js";
+import { validateRequest } from "../middlewares/validateRequest.js";
 import * as articleController from "../controllers/articleController.js";
+import * as articleCategoryController from "../controllers/articleCategoryController.js";
+import {
+  createArticleSchema,
+  updateArticleSchema,
+} from "../validators/articleValidator.js";
 
 const router = express.Router();
 
@@ -240,6 +246,28 @@ router.post(
 router.get("/news", articleController.getNews);
 router.get("/news/:slug", articleController.getNewsBySlug);
 
+// Article categories
+router.get("/news-categories", articleCategoryController.getAll);
+router.get("/news-categories/:id", articleCategoryController.getById);
+router.post(
+  "/admin/news-categories",
+  authenticateToken,
+  isAdminOrStaff,
+  articleCategoryController.create,
+);
+router.put(
+  "/admin/news-categories/:id",
+  authenticateToken,
+  isAdminOrStaff,
+  articleCategoryController.update,
+);
+router.delete(
+  "/admin/news-categories/:id",
+  authenticateToken,
+  isAdminOrStaff,
+  articleCategoryController.destroy,
+);
+
 // Admin/Staff - GET tất cả bài (không filter status)
 router.get(
   "/admin/news",
@@ -266,7 +294,7 @@ router.post(
   authenticateToken,
   isAdminOrStaff,
   upload.single("thumbnail"), // bật nếu có upload ảnh
-  // validateRequest(createArticleSchema), // TODO: debug validation
+  validateRequest(createArticleSchema),
   articleController.createNews,
 );
 
@@ -275,7 +303,7 @@ router.put(
   authenticateToken,
   isAdminOrStaff,
   upload.single("thumbnail"),
-  // validateRequest(updateArticleSchema), // TODO: debug validation
+  validateRequest(updateArticleSchema),
   articleController.updateNews,
 );
 
