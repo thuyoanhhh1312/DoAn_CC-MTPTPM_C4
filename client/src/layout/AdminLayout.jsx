@@ -24,29 +24,30 @@ const { Text, Title } = Typography;
 
 const adminTheme = {
   token: {
-    colorPrimary: "#12332B",
-    colorInfo: "#12332B",
-    colorWarning: "#B08A4A",
-    colorText: "#1A1D21",
-    colorBgLayout: "#F5F6F7",
-    colorBgContainer: "#FFFFFF",
-    colorBorder: "#E6E8EC",
+    colorPrimary: "#c48c46", // gold-500
+    colorInfo: "#1a1a2e", // brand-dark
+    colorWarning: "#c48c46",
+    colorText: "#1a1d21",
+    colorBgLayout: "#faf7f2", // bg-brand-light
+    colorBgContainer: "#ffffff",
+    colorBorder: "#e8e4de",
     borderRadius: 12,
-    fontFamily: "IBM Plex Sans, sans-serif",
+    fontFamily: '"Inter", sans-serif',
   },
   components: {
     Layout: {
-      siderBg: "#12332B",
-      headerBg: "#FFFFFF",
-      bodyBg: "#F5F6F7",
+      siderBg: "#1a1a2e", // brand-dark
+      headerBg: "#ffffff",
+      bodyBg: "#faf7f2",
     },
     Menu: {
-      darkItemBg: "#12332B",
-      darkSubMenuItemBg: "#0F2B24",
-      darkItemSelectedBg: "#B08A4A",
-      darkItemSelectedColor: "#1A1D21",
-      darkItemColor: "#F5F6F7",
-      darkItemHoverColor: "#FFFFFF",
+      darkItemBg: "#1a1a2e",
+      darkSubMenuItemBg: "#16213e", // brand-deeper
+      darkItemSelectedBg: "rgba(196, 140, 70, 0.15)", // translucent gold
+      darkItemSelectedColor: "#c48c46", // text-gold
+      darkItemColor: "#a3a8b5", // muted gray-blue
+      darkItemHoverColor: "#ffffff",
+      darkItemHoverBg: "rgba(255,255,255,0.05)",
     },
   },
 };
@@ -56,7 +57,7 @@ const getSelectedNavKey = (pathname) => {
   const match = sorted.find(
     (item) => pathname === item.key || pathname.startsWith(`${item.key}/`),
   );
-  return match?.key || "/admin";
+  return match?.key || "/admin/dashboard";
 };
 
 const AdminLayout = () => {
@@ -104,10 +105,14 @@ const AdminLayout = () => {
       onClick: () => navigate("/profile"),
     },
     {
+      type: "divider",
+    },
+    {
       key: "signout",
       label: "Sign out",
-      icon: <LogOut size={14} />,
+      icon: <LogOut size={16} className="text-red-500" />,
       onClick: handleSignOut,
+      danger: true,
     },
   ];
 
@@ -118,7 +123,7 @@ const AdminLayout = () => {
       selectedKeys={[selectedKey]}
       items={adminNavItems}
       onClick={onMenuClick}
-      style={{ height: "100%", borderInlineEnd: 0 }}
+      style={{ height: "100%", borderInlineEnd: 0, padding: "16px 8px" }}
     />
   );
 
@@ -130,16 +135,26 @@ const AdminLayout = () => {
             collapsible
             collapsed={collapsed}
             onCollapse={setCollapsed}
-            width={260}
-            style={{ borderRight: "1px solid rgba(230, 232, 236, 0.16)" }}
+            width={280}
+            style={{ 
+              borderRight: "1px solid rgba(255, 255, 255, 0.05)",
+              boxShadow: "4px 0 24px rgba(0,0,0,0.02)"
+            }}
           >
-            <div className="flex h-16 items-center justify-center border-b border-white/10 px-3">
+            <div className="flex h-[72px] items-center justify-center border-b border-white/5 px-4 mb-2">
               <Title
-                level={5}
+                level={4}
                 className="portal-title"
-                style={{ margin: 0, color: "#F5F6F7", textAlign: "center" }}
+                style={{ 
+                  margin: 0, 
+                  color: "#c48c46", 
+                  textAlign: "center",
+                  letterSpacing: "0.5px",
+                  fontWeight: 700,
+                  fontFamily: '"Playfair Display", serif'
+                }}
               >
-                {collapsed ? "AJS" : "Aurelia Admin"}
+                {collapsed ? "A" : "Aurelia Admin"}
               </Title>
             </div>
             {menu}
@@ -149,46 +164,60 @@ const AdminLayout = () => {
         <Layout>
           <Header
             style={{
-              borderBottom: "1px solid var(--color-border)",
-              padding: "0 16px",
+              background: "#ffffff",
+              borderBottom: "1px solid #f0edf0",
+              padding: "0 24px",
+              height: "72px",
+              lineHeight: "normal",
+              display: "flex",
+              alignItems: "center",
+              boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.03)",
+              zIndex: 10
             }}
           >
-            <div className="flex h-full items-center justify-between gap-3">
-              <Space>
+            <div className="flex w-full items-center justify-between gap-3 pt-1">
+              <Space size="middle">
                 {!isDesktop && (
                   <Button
-                    icon={<MenuIcon size={18} />}
+                    type="text"
+                    icon={<MenuIcon size={20} />}
                     onClick={() => setDrawerOpen(true)}
                   />
                 )}
-                <div>
+                <div className="flex flex-col justify-center">
                   <Title
                     className="portal-title"
                     level={4}
-                    style={{ margin: 0, lineHeight: 1.2 }}
+                    style={{ margin: 0, lineHeight: 1.1, fontFamily: '"Playfair Display", serif', color: "#1a1a2e" }}
                   >
-                    Clean Ops Console
+                    Oanh Ngoc Jewelry Admin
                   </Title>
-                  <Text type="secondary">
-                    Operational control for catalog, orders, and campaigns
+                  <Text type="secondary" style={{ fontSize: "13px" }}>
+                    Trung tâm quản trị hệ thống và vận hành cửa hàng
                   </Text>
                 </div>
               </Space>
 
-              <Space>
+              <Space size="large">
                 <Tag
-                  color="#B08A4A"
-                  style={{ textTransform: "uppercase", margin: 0 }}
+                  color="#c48c46"
+                  style={{ textTransform: "uppercase", margin: 0, padding: "2px 8px", borderRadius: "6px", fontWeight: 600, border: "none" }}
                 >
                   {roleTag}
                 </Tag>
-                <Dropdown menu={{ items: userItems }} trigger={["click"]}>
-                  <Button icon={<UserCircle2 size={16} />}>
+                <Dropdown menu={{ items: userItems }} trigger={["click"]} placement="bottomRight">
+                  <Button 
+                    type="text" 
+                    style={{ height: "auto", padding: "4px 8px", borderRadius: "8px" }}
+                    className="hover:bg-gray-100 transition-colors cursor-pointer"
+                  >
                     <Space>
-                      <Avatar size={24}>
+                      <Avatar size={34} style={{ backgroundColor: "#1a1a2e", color: "#c48c46" }}>
                         {(user?.name || "A")[0].toUpperCase()}
                       </Avatar>
-                      <span>{user?.name || "Operator"}</span>
+                      <span className="font-medium text-gray-700 hidden sm:inline-block pl-1">
+                        {user?.name || "Operator"}
+                      </span>
                     </Space>
                   </Button>
                 </Dropdown>
@@ -196,23 +225,25 @@ const AdminLayout = () => {
             </div>
           </Header>
 
-          <Content>
+          <Content style={{ overflowX: 'hidden' }}>
             <Outlet />
           </Content>
         </Layout>
 
         <Drawer
-          title="Admin Navigation"
+          title={<span style={{ fontFamily: '"Playfair Display", serif', color: '#1a1a2e', fontSize: '1.25rem', fontWeight: 700 }}>Aurelia Navigation</span>}
           placement="left"
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
           width={300}
+          bodyStyle={{ padding: 0 }}
         >
           <Menu
             mode="inline"
             selectedKeys={[selectedKey]}
             items={adminNavItems}
             onClick={onMenuClick}
+            style={{ borderRight: 'none', padding: '16px 8px' }}
           />
         </Drawer>
       </Layout>

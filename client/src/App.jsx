@@ -10,14 +10,20 @@ import Search from "./pages/Search";
 import Home from "./pages/Home";
 import ProductDetail from "./pages/ProductDetail";
 
+import Dashboard from "./pages/admin/Dashboard";
+
 import ProfilePage from "./pages/ProfilePage";
 import OrderHistoryPage from "./pages/OrderHistoryPage";
 import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
 import { useDispatch } from "react-redux";
+import AdminRoute from "./components/routers/AdminRoute";
 import AdminOrStaffRoute from "./components/routers/AdminOrStaffRoute";
 import RequireAuth from "./components/guards/RequireAuth";
 import RequireGuest from "./components/guards/RequireGuest";
+import Campaign from "./pages/admin/Campaign/index";
+import AddCampaign from "./pages/admin/Campaign/add";
+import EditCampaign from "./pages/admin/Campaign/edit";
 function App() {
   const dispatch = useDispatch();
 
@@ -53,6 +59,23 @@ function App() {
 
         <Route element={<AdminLayout />}>
           <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <Navigate to="/admin/dashboard" replace />
+              </AdminRoute>
+            }
+          />
+          {/*Dashboard*/}
+          <Route
+            path="/admin/dashboard"
+            element={
+              <AdminRoute>
+                <Dashboard />
+              </AdminRoute>
+            }
+          />
+          <Route
             path="/admin/subcategories"
             element={
               <AdminOrStaffRoute>
@@ -73,6 +96,32 @@ function App() {
             element={
               <AdminOrStaffRoute>
                 <EditSubCategory />
+              </AdminOrStaffRoute>
+            }
+          />
+
+          {/* Campaigns */}
+          <Route
+            path="/admin/campaigns"
+            element={
+              <AdminOrStaffRoute>
+                <Campaign />
+              </AdminOrStaffRoute>
+            }
+          />
+          <Route
+            path="/admin/campaigns/add"
+            element={
+              <AdminOrStaffRoute>
+                <AddCampaign />
+              </AdminOrStaffRoute>
+            }
+          />
+          <Route
+            path="/admin/campaigns/edit/:id"
+            element={
+              <AdminOrStaffRoute>
+                <EditCampaign />
               </AdminOrStaffRoute>
             }
           />

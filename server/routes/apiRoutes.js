@@ -29,6 +29,8 @@ import * as searchController from "../controllers/searchController.js";
 import * as categoryController from "../controllers/categoryController.js";
 import * as subCategoryController from "../controllers/subCategoryController.js";
 import * as productReviewController from "../controllers/productReviewController.js";
+import campaignRoutes from "./campaignRoutes.js";
+import * as dashboardController from "../controllers/dashboardController.js";
 
 import * as tagController from "../controllers/tagController.js";
 router.get("/tags", tagController.getAllTags);
@@ -311,4 +313,19 @@ router.delete(
   isAdminOrStaff,
   articleController.deleteNews,
 );
+//Dashboard routes
+router.get(
+  "/dashboard/revenue",
+  authenticateToken,
+  isAdmin,
+  dashboardController.getRevenueByPeriod,
+);
+router.get(
+  "/dashboard/orders/count",
+  authenticateToken,
+  isAdmin,
+  dashboardController.getOrderCountByPeriod,
+);
+// Campaign routes
+router.use("/campaigns", campaignRoutes);
 export default router;
