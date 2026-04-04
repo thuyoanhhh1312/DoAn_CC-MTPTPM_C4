@@ -57,7 +57,7 @@ const getSelectedNavKey = (pathname) => {
   const match = sorted.find(
     (item) => pathname === item.key || pathname.startsWith(`${item.key}/`),
   );
-  return match?.key || "/admin";
+  return match?.key || "/admin/dashboard";
 };
 
 const AdminLayout = () => {

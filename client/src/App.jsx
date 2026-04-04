@@ -10,11 +10,14 @@ import Search from "./pages/Search";
 import Home from "./pages/Home";
 import ProductDetail from "./pages/ProductDetail";
 
+import Dashboard from "./pages/admin/Dashboard";
+
 import ProfilePage from "./pages/ProfilePage";
 import OrderHistoryPage from "./pages/OrderHistoryPage";
 import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
 import { useDispatch } from "react-redux";
+import AdminRoute from "./components/routers/AdminRoute";
 import AdminOrStaffRoute from "./components/routers/AdminOrStaffRoute";
 import RequireAuth from "./components/guards/RequireAuth";
 import RequireGuest from "./components/guards/RequireGuest";
@@ -55,6 +58,23 @@ function App() {
         </Route>
 
         <Route element={<AdminLayout />}>
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <Navigate to="/admin/dashboard" replace />
+              </AdminRoute>
+            }
+          />
+          {/*Dashboard*/}
+          <Route
+            path="/admin/dashboard"
+            element={
+              <AdminRoute>
+                <Dashboard />
+              </AdminRoute>
+            }
+          />
           <Route
             path="/admin/subcategories"
             element={
