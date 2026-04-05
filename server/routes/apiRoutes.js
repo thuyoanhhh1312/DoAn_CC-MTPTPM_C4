@@ -39,6 +39,7 @@ import * as categoryController from "../controllers/categoryController.js";
 import * as subCategoryController from "../controllers/subCategoryController.js";
 import * as productReviewController from "../controllers/productReviewController.js";
 import campaignRoutes from "./campaignRoutes.js";
+import promotionLogRoutes from "./promotionLogRoutes.js";
 import * as dashboardController from "../controllers/dashboardController.js";
 
 import * as tagController from "../controllers/tagController.js";
@@ -419,4 +420,5 @@ router.get(
 );
 // Campaign routes
 router.use("/campaigns", campaignRoutes);
+router.use("/promotion-logs", authenticateToken, promotionLogRoutes);
 export default router;
