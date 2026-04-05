@@ -120,6 +120,16 @@ router.get("/get-product-by-slug/:slug", productController.getProductBySlug);
 router.get("/get-product-top-rated-by-sentiment", productController.getTopRatedProductsBySentiment);
 router.get("/get-category-subcategory", productController.getCategoryesWithSubCategory);
 router.get("/products/:id", productController.getProductById);
+
+// Product image upload (Admin/Staff only) - Upload multiple images
+router.post(
+  "/uploads/product-images",
+  authenticateToken,
+  isAdminOrStaff,
+  upload.array("images", 10),
+  productController.uploadProductImages,
+);
+
 // ✅ Staff & Admin tạo/sửa product
 router.post(
   "/products",

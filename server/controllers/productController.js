@@ -266,19 +266,35 @@ export const createProduct = async (req, res) => {
       subcategory_id,
     });
 
+    let createdImages = [];
     if (imageFiles && imageFiles.length > 0) {
-      const imagesToCreate = imageFiles.map((file, index) => ({
-        product_id: newProduct.product_id,
-        image_url: file.path,
-        alt_text: product_name,
-        is_main: index === 0,
-      }));
-      await db.ProductImage.bulkCreate(imagesToCreate);
+      const imagesToCreate = imageFiles.map((file, index) => {
+        // Handle both Cloudinary (returns full URL in path) and local storage
+        const imageUrl = file.path && file.path.startsWith('http')
+          ? file.path  // Cloudinary URL
+          : `/uploads/products/${file.filename || file.originalname}`; // Local storage
+
+        return {
+          product_id: newProduct.product_id,
+          image_url: imageUrl,
+          alt_text: product_name,
+          is_main: index === 0,
+        };
+      });
+      createdImages = await db.ProductImage.bulkCreate(imagesToCreate);
     }
 
-    res.status(201).json(newProduct);
+    const responseData = newProduct.toJSON();
+    responseData.ProductImages = createdImages;
+
+    res.status(201).json({
+      statusCode: 201,
+      message: "Tạo sản phẩm thành công",
+      data: responseData,
+    });
   } catch (error) {
     res.status(500).json({
+      statusCode: 500,
       message: "Lỗi khi tạo sản phẩm",
       error: error.message,
     });
@@ -389,24 +405,46 @@ export const updateProduct = async (req, res) => {
 
     // Thêm ảnh mới nếu có
     const imageFiles = req.files;
+    let newImages = [];
     if (imageFiles && imageFiles.length > 0) {
       // Xem có ảnh chính chưa, nếu không có thì ảnh đầu tiên mới upload sẽ là ảnh chính
       const hasMainImage = await db.ProductImage.findOne({
         where: { product_id: id, is_main: true },
       });
-      const imagesToCreate = imageFiles.map((file, index) => ({
-        product_id: id,
-        image_url: file.path,
-        alt_text: product_name,
-        is_main: hasMainImage ? false : index === 0,
-      }));
-      await db.ProductImage.bulkCreate(imagesToCreate);
+      const imagesToCreate = imageFiles.map((file, index) => {
+        // Handle both Cloudinary (returns full URL in path) and local storage
+        const imageUrl = file.path && file.path.startsWith('http')
+          ? file.path  // Cloudinary URL
+          : `/uploads/products/${file.filename || file.originalname}`; // Local storage
+
+        return {
+          product_id: id,
+          image_url: imageUrl,
+          alt_text: product_name || product.product_name,
+          is_main: hasMainImage ? false : index === 0,
+        };
+      });
+      newImages = await db.ProductImage.bulkCreate(imagesToCreate);
     }
 
     await product.save();
-    res.status(200).json(product);
+
+    // Fetch updated product with images
+    const updatedProduct = await db.Product.findByPk(id, {
+      include: [{
+        model: db.ProductImage,
+        attributes: ["image_id", "image_url", "alt_text", "is_main"],
+      }],
+    });
+
+    res.status(200).json({
+      statusCode: 200,
+      message: "Cập nhật sản phẩm thành công",
+      data: updatedProduct,
+    });
   } catch (error) {
     res.status(500).json({
+      statusCode: 500,
       message: "Lỗi khi cập nhật sản phẩm",
       error: error.message,
     });
@@ -720,6 +758,57 @@ export const getTopRatedProductsBySentiment = async (req, res, next) => {
     return next({
       statusCode: 500,
       message: "Lỗi khi lấy sản phẩm đánh giá tốt theo sentiment",
+      error: error.message,
+    });
+  }
+};
+
+// Upload multiple product images (Admin/Staff only)
+export const uploadProductImages = async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "Không có tệp nào được tải lên",
+      });
+    }
+
+    // Validate file types
+    const allowedMimes = ["image/jpeg", "image/png", "image/webp"];
+    const invalidFiles = req.files.filter(
+      (file) => !allowedMimes.includes(file.mimetype)
+    );
+
+    if (invalidFiles.length > 0) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "Chỉ hỗ trợ các định dạng: JPG, PNG, WebP",
+        invalidFiles: invalidFiles.map((f) => f.originalname),
+      });
+    }
+
+    // Build URLs based on storage type
+    const urls = req.files.map((file) => {
+      // For Cloudinary storage, file.path is the full URL
+      // For local storage, we need to construct the URL
+      if (file.path && file.path.startsWith("http")) {
+        return file.path; // Cloudinary URL
+      } else {
+        // Local storage: construct URL from filename
+        return `/uploads/products/${file.filename || file.originalname}`;
+      }
+    });
+
+    return res.status(200).json({
+      statusCode: 200,
+      message: "Upload ảnh thành công",
+      urls,
+      count: urls.length,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      statusCode: 500,
+      message: "Lỗi khi upload ảnh",
       error: error.message,
     });
   }
