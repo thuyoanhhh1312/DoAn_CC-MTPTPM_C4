@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { ToastContainer, toast } from "react-toastify";
 import MainLayout from "../layout/MainLayout";
+import orderApi from "../api/orderApi";
 import "react-toastify/dist/ReactToastify.css";
 
 const provincesMock = [
@@ -75,6 +76,7 @@ const CheckoutPage = () => {
   const [notes, setNotes] = useState("");
   const [promoCode, setPromoCode] = useState("");
   const [promoApplied, setPromoApplied] = useState(null);
+  const [promoLoading, setPromoLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [submitting, setSubmitting] = useState(false);
 
@@ -107,35 +109,69 @@ const CheckoutPage = () => {
   }, [selectedItems, totalAmount]);
 
   const discount = useMemo(() => {
-    if (!promoApplied) return 0;
-    return Math.round(subTotal * promoApplied.percent);
+    return Number(promoApplied?.discount ?? 0);
   }, [promoApplied, subTotal]);
 
   const total = Math.max(0, subTotal - discount);
   const depositAmount = Math.round(total * 0.1);
 
   const handleApplyPromo = () => {
-    const normalized = promoCode.trim().toUpperCase();
+    const apply = async () => {
+      const normalized = promoCode.trim().toUpperCase();
 
-    if (!normalized) {
-      toast.warn("Vui lòng nhập mã ưu đãi.");
-      return;
-    }
+      if (!normalized) {
+        toast.warn("Vui lòng nhập mã ưu đãi.");
+        return;
+      }
 
-    if (normalized === "GIAM10") {
-      setPromoApplied({ code: normalized, percent: 0.1, description: "Giảm 10% cho đơn hàng trang sức." });
-      toast.success("Áp dụng mã ưu đãi thành công.");
-      return;
-    }
+      if (!user?.id || !user?.token) {
+        toast.error("Vui lòng đăng nhập để áp dụng mã khuyến mãi.");
+        return;
+      }
 
-    if (normalized === "FREESHIP") {
-      setPromoApplied({ code: normalized, percent: 0.05, description: "Ưu đãi 5% thay cho freeship trong bản UI demo." });
-      toast.success("Áp dụng mã ưu đãi thành công.");
-      return;
-    }
+      if (!selectedItems.length) {
+        toast.error("Không có sản phẩm nào để áp dụng mã.");
+        return;
+      }
 
-    setPromoApplied(null);
-    toast.error("Mã ưu đãi không hợp lệ.");
+      setPromoLoading(true);
+
+      try {
+        const response = await orderApi.calculatePrice(
+          {
+            items: selectedItems.map((item) => ({
+              product_id: item.product_id,
+              quantity: item.count ?? 1,
+            })),
+            promotion_code: normalized,
+            user_id: user.id,
+          },
+          user.token,
+        );
+
+        if (response.valid) {
+          setPromoApplied({
+            code: response.promotion?.promotion_code ?? normalized,
+            description: response.promotion?.description ?? "",
+            discount_percent: response.promotion?.discount_percent ?? 0,
+            discount: response.discount ?? 0,
+          });
+          toast.success(response.message || "Áp dụng mã ưu đãi thành công.");
+        } else {
+          setPromoApplied(null);
+          toast.error(response.message || "Mã ưu đãi không hợp lệ.");
+        }
+      } catch (error) {
+        setPromoApplied(null);
+        toast.error(
+          error.response?.data?.message || "Lỗi khi áp dụng mã khuyến mãi.",
+        );
+      } finally {
+        setPromoLoading(false);
+      }
+    };
+
+    apply();
   };
 
   const handleRemovePromo = () => {
@@ -251,13 +287,21 @@ const CheckoutPage = () => {
                   onChange={(e) => setPromoCode(e.target.value)}
                   placeholder="Nhập mã ưu đãi"
                   className="h-12 flex-1 rounded-xl border border-gray-200 px-4 text-sm outline-none transition focus:border-[#003468]"
+                  disabled={promoLoading}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleApplyPromo();
+                    }
+                  }}
                 />
                 <button
                   type="button"
                   onClick={handleApplyPromo}
-                  className="h-12 rounded-xl bg-[#b1b1b1] px-6 font-semibold text-white transition hover:bg-[#979797]"
+                  disabled={promoLoading}
+                  className="h-12 rounded-xl bg-[#b1b1b1] px-6 font-semibold text-white transition hover:bg-[#979797] disabled:cursor-not-allowed disabled:bg-gray-300"
                 >
-                  Áp dụng
+                  {promoLoading ? "Đang áp dụng..." : "Áp dụng"}
                 </button>
               </div>
 
@@ -266,7 +310,7 @@ const CheckoutPage = () => {
                   <div>
                     <p className="font-bold text-blue-700">Mã ưu đãi: {promoApplied.code}</p>
                     <p className="mt-1 text-sm text-[#003468]">
-                      Giảm {Math.round(promoApplied.percent * 100)}% ({formatPrice(discount)})
+                      Giảm {promoApplied.discount_percent}% ({formatPrice(discount)})
                     </p>
                     <p className="mt-1 text-sm text-blue-700">{promoApplied.description}</p>
                   </div>
