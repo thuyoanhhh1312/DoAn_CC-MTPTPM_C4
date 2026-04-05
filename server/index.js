@@ -10,48 +10,39 @@ import db from "./models/index.js";
 
 const app = express();
 
-const ensureDemoUsers = async () => {
+const ensureAdminUser = async () => {
   if (process.env.NODE_ENV === "production") {
     return;
   }
 
-  const demoUsers = [
-    {
-      name: "Admin Operator",
-      email: "admin@jewel.local",
-      password: "Admin@123",
-      role_id: 1,
-    },
-    {
-      name: "Staff Operator",
-      email: "staff@jewel.local",
-      password: "Staff@123",
-      role_id: 3,
-    },
-    {
-      name: "Customer Demo",
-      email: "customer@jewel.local",
-      password: "Customer@123",
-      role_id: 2,
-    },
-  ];
-
-  for (const demoUser of demoUsers) {
-    const existingUser = await db.User.findOne({
-      where: { email: demoUser.email },
-    });
-
-    if (existingUser) {
-      continue;
+  try {
+    // Ensure Admin role exists
+    const adminRole = await db.Role.findOne({ where: { name: "Admin" } });
+    if (!adminRole) {
+      await db.Role.create({
+        id: 1,
+        name: "Admin",
+        description: "Administrator",
+      });
     }
 
-    const password_hash = await bcrypt.hash(demoUser.password, 12);
-    await db.User.create({
-      name: demoUser.name,
-      email: demoUser.email,
-      password_hash,
-      role_id: demoUser.role_id,
+    // Check if admin user exists
+    const existingAdmin = await db.User.findOne({
+      where: { email: "admin@oanh.local" },
     });
+
+    if (!existingAdmin) {
+      const password_hash = await bcrypt.hash("Admin@123", 12);
+      await db.User.create({
+        name: "Admin User",
+        email: "admin@oanh.local",
+        password_hash,
+        role_id: 1,
+      });
+      console.log("✅ Admin user created: admin@oanh.local");
+    }
+  } catch (error) {
+    console.error("❌ Error creating admin user:", error.message);
   }
 };
 
@@ -117,9 +108,10 @@ app.use(errorHandler);
 const port = process.env.PORT || 3001;
 app.listen(port, async () => {
   try {
-    await ensureDemoUsers();
+    // Create admin user
+    await ensureAdminUser();
   } catch (error) {
-    console.error("Không thể khởi tạo tài khoản demo:", error.message);
+    console.error("❌ Initialization error:", error.message);
   }
   console.log(`Server đang chạy trên http://localhost:${port}`);
   console.log(`Server cũng có thể truy cập qua http://127.0.0.1:${port}`);
