@@ -15,6 +15,7 @@ import {
   createArticleSchema,
   updateArticleSchema,
 } from "../validators/articleValidator.js";
+import { calculatePriceSchema } from "../validators/orderValidator.js";
 
 const router = express.Router();
 
@@ -27,6 +28,7 @@ import {
 import * as authController from "../controllers/authController.js";
 import * as customerController from "../controllers/customerController.js";
 import * as productController from "../controllers/productController.js";
+import * as orderController from "../controllers/orderController.js";
 import * as searchController from "../controllers/searchController.js";
 
 import * as categoryController from "../controllers/categoryController.js";
@@ -215,6 +217,12 @@ router.delete(
 );
 router.get("/search-product", searchController.searchProducts);
 router.get("/quick-search-products", searchController.quickSearchProducts);
+router.post(
+  "/calculate-price",
+  authenticateToken,
+  validateRequest(calculatePriceSchema),
+  orderController.calculatePrice,
+);
 
 // Product Review
 router.get(
