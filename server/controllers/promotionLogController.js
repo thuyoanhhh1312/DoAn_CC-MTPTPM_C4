@@ -34,6 +34,21 @@ const createPromotionLog = async (
   emailStatus = "sent",
   errorMessage = null,
 ) => {
+  const existingLog = await PromotionLog.findOne({
+    where: {
+      customer_id: customerId,
+      promotion_id: promotionId,
+    },
+  });
+
+  if (existingLog) {
+    return existingLog.update({
+      sent_at: new Date(),
+      email_status: emailStatus,
+      error_message: errorMessage,
+    });
+  }
+
   return PromotionLog.create({
     customer_id: customerId,
     promotion_id: promotionId,
