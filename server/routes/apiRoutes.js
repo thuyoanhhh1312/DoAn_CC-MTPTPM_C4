@@ -15,7 +15,10 @@ import {
   createArticleSchema,
   updateArticleSchema,
 } from "../validators/articleValidator.js";
-import { calculatePriceSchema } from "../validators/orderValidator.js";
+import {
+  calculatePriceSchema,
+  checkoutSchema,
+} from "../validators/orderValidator.js";
 
 const router = express.Router();
 
@@ -217,11 +220,45 @@ router.delete(
 );
 router.get("/search-product", searchController.searchProducts);
 router.get("/quick-search-products", searchController.quickSearchProducts);
+router.get(
+  "/orders",
+  authenticateToken,
+  isAdmin,
+  orderController.getAllOrders,
+);
+router.get(
+  "/orders/by-customer/:user_id",
+  authenticateToken,
+  orderController.getOrderByCustomer,
+);
+router.get(
+  "/orders/by-user/:user_id",
+  authenticateToken,
+  isAdminOrStaff,
+  orderController.getOrderByUserId,
+);
+router.get(
+  "/orders/:id",
+  authenticateToken,
+  orderController.getOrderById,
+);
+router.put(
+  "/orders/:id",
+  authenticateToken,
+  isAdminOrStaff,
+  orderController.updatedOrder,
+);
 router.post(
   "/calculate-price",
   authenticateToken,
   validateRequest(calculatePriceSchema),
   orderController.calculatePrice,
+);
+router.post(
+  "/checkout",
+  authenticateToken,
+  validateRequest(checkoutSchema),
+  orderController.checkout,
 );
 
 // Product Review
