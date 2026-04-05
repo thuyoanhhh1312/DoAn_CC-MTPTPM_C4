@@ -24,6 +24,15 @@ import RequireGuest from "./components/guards/RequireGuest";
 import Campaign from "./pages/admin/Campaign/index";
 import AddCampaign from "./pages/admin/Campaign/add";
 import EditCampaign from "./pages/admin/Campaign/edit";
+
+import AdminNews from "./pages/admin/News/index";
+import AddNews from "./pages/admin/News/add";
+import EditNews from "./pages/admin/News/edit";
+
+import NewsCategory from "./pages/admin/NewsCategory/index";
+import AddNewsCategory from "./pages/admin/NewsCategory/add";
+import EditNewsCategory from "./pages/admin/NewsCategory/edit";
+
 function App() {
   const dispatch = useDispatch();
 
@@ -96,6 +105,56 @@ function App() {
             element={
               <AdminOrStaffRoute>
                 <EditSubCategory />
+              </AdminOrStaffRoute>
+            }
+          />
+          {/* News */}
+          <Route
+            path="/admin/news"
+            element={
+              <AdminOrStaffRoute>
+                <AdminNews />
+              </AdminOrStaffRoute>
+            }
+          />
+          <Route
+            path="/admin/news/add"
+            element={
+              <AdminOrStaffRoute>
+                <AddNews />
+              </AdminOrStaffRoute>
+            }
+          />
+          <Route
+            path="/admin/news/edit/:id"
+            element={
+              <AdminOrStaffRoute>
+                <EditNews />
+              </AdminOrStaffRoute>
+            }
+          />
+          {/* News Categories */}
+          <Route
+            path="/admin/news-categories"
+            element={
+              <AdminOrStaffRoute>
+                <NewsCategory />
+              </AdminOrStaffRoute>
+            }
+          />
+          <Route
+            path="/admin/news-categories/add"
+            element={
+              <AdminOrStaffRoute>
+                <AddNewsCategory />
+              </AdminOrStaffRoute>
+            }
+          />
+          <Route
+            path="/admin/news-categories/edit/:id"
+            element={
+              <AdminOrStaffRoute>
+                <EditNewsCategory />
               </AdminOrStaffRoute>
             }
           />

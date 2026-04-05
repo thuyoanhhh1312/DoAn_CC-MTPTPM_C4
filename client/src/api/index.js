@@ -5,6 +5,8 @@ export { default as axiosInstance } from "./axiosInstance";
 export { default as categoryApi } from "./categoryApi";
 export { default as customerApi } from "./customerApi";
 export { default as productApi } from "./productApi";
+export { default as newsApi } from "./newsApi";
+export { default as newsCategoryApi } from "./newsCategoryApi";
 export { default as promotionApi } from "./promotionApi";
 export { default as subCategoryApi } from "./subCategoryApi";
 export { default as tagApi } from "./tagApi";
