@@ -35,6 +35,8 @@ import EditNews from "./pages/admin/News/edit";
 import NewsCategory from "./pages/admin/NewsCategory/index";
 import AddNewsCategory from "./pages/admin/NewsCategory/add";
 import EditNewsCategory from "./pages/admin/NewsCategory/edit";
+import PromotionLogsPage from "./pages/admin/PromotionLogsPage";
+import PromotionLogSendPage from "./pages/admin/PromotionLogSendPage";
 
 function App() {
   const dispatch = useDispatch();
@@ -192,6 +194,22 @@ function App() {
             element={
               <AdminOrStaffRoute>
                 <EditCampaign />
+              </AdminOrStaffRoute>
+            }
+          />
+          <Route
+            path="/admin/promotion-logs"
+            element={
+              <AdminOrStaffRoute>
+                <PromotionLogsPage />
+              </AdminOrStaffRoute>
+            }
+          />
+          <Route
+            path="/admin/promotion-logs/send"
+            element={
+              <AdminOrStaffRoute>
+                <PromotionLogSendPage />
               </AdminOrStaffRoute>
             }
           />
