@@ -32,3 +32,11 @@ export const checkoutSchema = Joi.object({
     .default("none"),
   items: Joi.array().items(orderItemSchema).min(1).required(),
 });
+
+export const updateDepositSchema = Joi.object({
+  is_deposit: Joi.boolean().optional(),
+  deposit_status: Joi.string().valid("pending", "paid", "none").optional(),
+  transaction_id: Joi.string().max(128).optional().allow("", null),
+  payment_details: Joi.object().optional(),
+})
+  .or("is_deposit", "deposit_status", "transaction_id", "payment_details");

@@ -18,6 +18,7 @@ import {
 import {
   calculatePriceSchema,
   checkoutSchema,
+  updateDepositSchema,
 } from "../validators/orderValidator.js";
 
 const router = express.Router();
@@ -247,6 +248,13 @@ router.put(
   authenticateToken,
   isAdminOrStaff,
   orderController.updatedOrder,
+);
+router.patch(
+  "/orders/:id/deposit",
+  authenticateToken,
+  isAdminOrStaff,
+  validateRequest(updateDepositSchema),
+  orderController.updateIsDeposit,
 );
 router.post(
   "/calculate-price",
