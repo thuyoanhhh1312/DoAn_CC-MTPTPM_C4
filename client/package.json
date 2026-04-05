@@ -23,6 +23,7 @@
     "@react-three/fiber": "^8.18.0",
     "antd": "^5.28.0",
     "axios": "^1.13.5",
+    "chart.js": "^4.5.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dompurify": "^3.3.3",
