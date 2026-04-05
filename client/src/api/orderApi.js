@@ -15,6 +15,30 @@ const getOrderByCustomer = async (userId, accessToken) => {
   return response.data;
 };
 
+const checkout = async (payload, accessToken) => {
+  const response = await axiosInstance.post(`${API_URL}/checkout`, payload, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  return response.data;
+};
+
+const updateDeposit = async (orderId, payload, accessToken) => {
+  const response = await axiosInstance.patch(
+    `${API_URL}/orders/${orderId}/deposit`,
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+
+  return response.data;
+};
+
 const calculatePrice = async (payload, accessToken) => {
   const response = await axiosInstance.post(`${API_URL}/calculate-price`, payload, {
     headers: {
@@ -27,5 +51,7 @@ const calculatePrice = async (payload, accessToken) => {
 
 export default {
   getOrderByCustomer,
+  checkout,
+  updateDeposit,
   calculatePrice,
 };
