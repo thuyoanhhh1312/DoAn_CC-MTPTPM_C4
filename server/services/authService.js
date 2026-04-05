@@ -130,3 +130,39 @@ export const signout = async (userId) => {
 
   return { message: "Signed out successfully" };
 };
+
+export const updateProfile = async (userId, { fullName, password }) => {
+  if (!db.User) {
+    const error = new Error("User model not configured");
+    error.statusCode = 500;
+    throw error;
+  }
+
+  const user = await db.User.findByPk(userId);
+
+  if (!user) {
+    const error = new Error("User not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  // Update user name
+  user.name = fullName;
+
+  // Update password if provided
+  if (password) {
+    user.password_hash = await bcrypt.hash(password, 10);
+  }
+
+  await user.save();
+
+  // Update customer profile if exists
+  if (db.Customer) {
+    await db.Customer.update(
+      { name: fullName },
+      { where: { user_id: userId } }
+    );
+  }
+
+  return { message: "Profile updated successfully" };
+};

@@ -47,3 +47,13 @@ export const signout = async (req, res, next) => {
     next(error);
   }
 };
+
+export const updateProfile = async (req, res, next) => {
+  try {
+    const { id } = req.user;
+    const result = await authService.updateProfile(id, req.body);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};
