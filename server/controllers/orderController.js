@@ -137,6 +137,66 @@ export const getOrderByUserId = async (req, res) => {
   }
 };
 
+export const updateIsDeposit = async (req, res) => {
+  try {
+    const {
+      is_deposit,
+      deposit_status,
+      transaction_id,
+      payment_details,
+    } = req.body;
+
+    const order = await db.Order.findByPk(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        message: "Không tìm thấy đơn hàng.",
+      });
+    }
+
+    if (typeof is_deposit === "boolean") {
+      order.is_deposit = is_deposit;
+    }
+
+    if (deposit_status) {
+      order.deposit_status = deposit_status;
+    }
+
+    if (transaction_id !== undefined) {
+      order.transaction_id = transaction_id || null;
+    }
+
+    if (payment_details !== undefined) {
+      order.payment_details = payment_details ?? null;
+    }
+
+    if (order.deposit_status === "paid") {
+      order.is_deposit = true;
+    }
+
+    if (!order.is_deposit && order.deposit_status !== "none") {
+      order.deposit_status = "none";
+    }
+
+    order.updated_at = new Date();
+    await order.save();
+
+    const updatedOrder = await db.Order.findByPk(order.order_id, {
+      include: includeOrderRelations,
+    });
+
+    return res.status(200).json({
+      message: "Cập nhật trạng thái đặt cọc thành công.",
+      order: updatedOrder,
+    });
+  } catch (error) {
+    console.error("updateIsDeposit error:", error);
+    return res.status(500).json({
+      message: "Lỗi khi cập nhật trạng thái đặt cọc.",
+    });
+  }
+};
+
 export const calculatePrice = async (req, res) => {
   try {
     const { items, promotion_code, user_id } = req.body;
