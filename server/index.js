@@ -2,6 +2,8 @@
 import express from "express";
 import cors from "cors";
 import bcrypt from "bcryptjs";
+import vnpayRouter from "./vnpay/payment.js";
+
 import apiRoutes from "./routes/apiRoutes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import db from "./models/index.js";
@@ -98,7 +100,7 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Upload routes
-
+app.use("/api/payment", vnpayRouter);
 // API routes
 app.use(apiRoutes);
 app.use("/api", apiRoutes);
