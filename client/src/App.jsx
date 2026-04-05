@@ -6,6 +6,9 @@ import CustomerLayout from "./layout/CustomerLayout";
 import SubCategory from "./pages/admin/SubCategory/index";
 import AddSubCategory from "./pages/admin/SubCategory/add";
 import EditSubCategory from "./pages/admin/SubCategory/edit";
+import ProductList from "./pages/admin/Product/index";
+import AddProduct from "./pages/admin/Product/add";
+import EditProduct from "./pages/admin/Product/edit";
 import Search from "./pages/Search";
 import Home from "./pages/Home.js";
 import ProductDetail from "./pages/ProductDetail";
@@ -118,6 +121,31 @@ function App() {
             element={
               <AdminOrStaffRoute>
                 <EditSubCategory />
+              </AdminOrStaffRoute>
+            }
+          />
+          {/* Products */}
+          <Route
+            path="/admin/products"
+            element={
+              <AdminOrStaffRoute>
+                <ProductList />
+              </AdminOrStaffRoute>
+            }
+          />
+          <Route
+            path="/admin/products/add"
+            element={
+              <AdminOrStaffRoute>
+                <AddProduct />
+              </AdminOrStaffRoute>
+            }
+          />
+          <Route
+            path="/admin/products/edit/:id"
+            element={
+              <AdminOrStaffRoute>
+                <EditProduct />
               </AdminOrStaffRoute>
             }
           />
