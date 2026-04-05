@@ -9,6 +9,8 @@ import EditSubCategory from "./pages/admin/SubCategory/edit";
 import Search from "./pages/Search";
 import Home from "./pages/Home";
 import ProductDetail from "./pages/ProductDetail";
+import CartPage from "./pages/CartPage";
+import CheckoutPage from "./pages/CheckoutPage";
 
 import Dashboard from "./pages/admin/Dashboard";
 import RankManagement from "./pages/admin/Rank";
@@ -196,6 +198,8 @@ function App() {
         </Route>
         <Route path="/" element={<Home />} />
         <Route path="/search" element={<Search />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/:slug" element={<ProductDetail />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
