@@ -2,6 +2,8 @@
 import express from "express";
 import cors from "cors";
 import bcrypt from "bcryptjs";
+import fs from "fs";
+import path from "path";
 import apiRoutes from "./routes/apiRoutes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import db from "./models/index.js";
@@ -97,7 +99,13 @@ app.use((req, res, next) => {
 // ⬇️ body parser để SAU CORS và TĂNG LIMIT
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-// Upload routes
+
+// Local upload static serving for CKEditor blog images
+const uploadsDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use("/uploads", express.static(uploadsDir));
 
 // API routes
 app.use(apiRoutes);

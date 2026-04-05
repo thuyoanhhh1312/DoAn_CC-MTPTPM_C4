@@ -2,6 +2,22 @@ import db from "../models/index.js";
 import cloudinary from "../config/cloudinary.js";
 
 const { Article, ArticleCategory, Tag } = db;
+
+const resolveUploadedFileUrl = (req, file) => {
+  if (!file) return null;
+
+  // Cloudinary storage already provides public URL in file.path
+  if (file.path && /^https?:\/\//i.test(file.path)) {
+    return file.path;
+  }
+
+  // Local disk storage: expose static URL under /uploads
+  if (file.filename) {
+    return `${req.protocol}://${req.get("host")}/uploads/products/${file.filename}`;
+  }
+
+  return file.path || null;
+};
 // GET /news?page=&limit=&q=&category_id=&status=
 
 // server/controllers/articleController.js (trích phần getNews)
@@ -41,7 +57,7 @@ export const getNews = async (req, res, next) => {
       where.title = db.Sequelize.where(
         db.Sequelize.fn("LOWER", db.Sequelize.col("title")),
         "LIKE",
-        `%${searchQuery}%`
+        `%${searchQuery}%`,
       );
     }
 
@@ -264,8 +280,9 @@ export const createNews = async (req, res, next) => {
     const { tags: _ignored, "tags[]": _ignored2, ...data } = req.body || {};
 
     // file upload -> thumbnail_url
-    if (req.file?.path && !data.thumbnail_url) {
-      data.thumbnail_url = req.file.path; // Cloudinary URL hoặc local path
+    const uploadedThumbnailUrl = resolveUploadedFileUrl(req, req.file);
+    if (uploadedThumbnailUrl && !data.thumbnail_url) {
+      data.thumbnail_url = uploadedThumbnailUrl;
     }
 
     // validate article_category_id
@@ -347,7 +364,7 @@ export const updateNews = async (req, res, next) => {
     }
 
     // Nếu có file upload mới, xóa ảnh cũ trên Cloudinary (nếu dùng)
-    if (req.file?.path) {
+    if (req.file) {
       if (article.thumbnail_url) {
         try {
           const urlParts = article.thumbnail_url.split("/");
@@ -359,7 +376,7 @@ export const updateNews = async (req, res, next) => {
           console.error("Lỗi xóa ảnh cũ:", err);
         }
       }
-      data.thumbnail_url = req.file.path;
+      data.thumbnail_url = resolveUploadedFileUrl(req, req.file);
     }
 
     if (data.article_category_id) {

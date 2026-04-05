@@ -79,6 +79,12 @@ export const destroy = async (req, res, next) => {
     if (!n) return res.status(404).json({ message: "Danh mục không tìm thấy" });
     res.json({ message: "Đã xóa" });
   } catch (err) {
+    if (err?.name === "SequelizeForeignKeyConstraintError") {
+      return res.status(409).json({
+        message:
+          "Không thể xóa danh mục vì đang có bài viết thuộc danh mục này",
+      });
+    }
     next(err);
   }
 };
