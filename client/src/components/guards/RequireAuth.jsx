@@ -1,11 +1,13 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { Spin } from 'antd';
-import { useAuth } from '@/contexts/AuthContext';
-import { buildReturnUrl } from '@/utils/returnUrl';
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Spin } from "antd";
+import { buildReturnUrl } from "@/utils/returnUrl";
+import { useSelector } from "react-redux";
 
 const RequireAuth = ({ children }) => {
   const location = useLocation();
-  const { isAuthenticated, isInitializing } = useAuth();
+  const user = useSelector((state) => state.user);
+  const isAuthenticated = Boolean(user?.token);
+  const isInitializing = false;
 
   if (isInitializing) {
     return (

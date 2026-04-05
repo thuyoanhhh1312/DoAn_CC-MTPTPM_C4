@@ -1,10 +1,12 @@
-import { Navigate, Outlet, useSearchParams } from 'react-router-dom';
-import { Spin } from 'antd';
-import { useAuth } from '@/contexts/AuthContext';
-import { resolveReturnUrl } from '@/utils/returnUrl';
+import { Navigate, Outlet, useSearchParams } from "react-router-dom";
+import { Spin } from "antd";
+import { resolveReturnUrl } from "@/utils/returnUrl";
+import { useSelector } from "react-redux";
 
 const RequireGuest = ({ children }) => {
-  const { isAuthenticated, isInitializing } = useAuth();
+  const user = useSelector((state) => state.user);
+  const isAuthenticated = Boolean(user?.token);
+  const isInitializing = false;
   const [searchParams] = useSearchParams();
 
   if (isInitializing) {
@@ -16,7 +18,7 @@ const RequireGuest = ({ children }) => {
   }
 
   if (isAuthenticated) {
-    const safeReturnUrl = resolveReturnUrl(searchParams.get('returnUrl'));
+    const safeReturnUrl = resolveReturnUrl(searchParams.get("returnUrl"));
     return <Navigate to={safeReturnUrl} replace />;
   }
 

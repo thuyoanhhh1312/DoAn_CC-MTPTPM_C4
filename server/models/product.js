@@ -1,54 +1,66 @@
-import { DataTypes } from 'sequelize';
-import sequelize from '../config/db.js';
+import { DataTypes } from "sequelize";
+import sequelize from "../config/db.js";
 
-const Product = sequelize.define('Product', {
+const Product = sequelize.define(
+  "Product",
+  {
     product_id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
     },
     product_name: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true,
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
     },
     slug: {
-        type: DataTypes.STRING,
-        allowNull: true,
-        unique: true,
+      type: DataTypes.STRING,
+      allowNull: true,
+      unique: true,
     },
     description: {
-        type: DataTypes.TEXT,
-        allowNull: true,
+      type: DataTypes.TEXT,
+      allowNull: true,
     },
     price: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
     },
     quantity: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0,
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
     },
     sold_quantity: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0,
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    category_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    subcategory_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
     },
     is_active: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: true,
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
     },
     created_at: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
     },
     updated_at: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
     },
-}, {
-    tableName: 'product',
+  },
+  {
+    tableName: "product",
     timestamps: false,
-});
+  },
+);
 
 export default Product;

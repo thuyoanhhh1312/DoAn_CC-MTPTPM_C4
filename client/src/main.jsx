@@ -1,27 +1,26 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
-import { App as AntApp } from 'antd';
-import '@fontsource/playfair-display/latin-700.css';
-import '@fontsource/manrope/latin-400.css';
-import '@fontsource/manrope/latin-500.css';
-import '@fontsource/manrope/latin-600.css';
-import '@fontsource/sora/latin-600.css';
-import '@fontsource/ibm-plex-sans/latin-400.css';
-import '@fontsource/ibm-plex-sans/latin-500.css';
-import '@fontsource/ibm-plex-sans/latin-600.css';
-import AppRoutes from '@/app/AppRoutes';
-import { AuthProvider } from '@/contexts/AuthContext';
-import './index.css';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import "antd/dist/reset.css";
+import "./index.css";
+import App from "./App";
+import { ThemeProvider } from "./context/ThemeContext";
+import ThemeProviderWrapper from "./components/ThemeProviderWrapper";
+import { AppWrapper } from "./components/admin/common/PageMeta";
+import { createStore } from "redux";
+import { Provider } from "react-redux";
+import rootReducer from "./reducers";
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <AntApp>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </AntApp>
-    </BrowserRouter>
-  </React.StrictMode>,
+const store = createStore(rootReducer);
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(
+  <Provider store={store}>
+    <ThemeProvider>
+      <ThemeProviderWrapper>
+        <AppWrapper>
+          <App />
+        </AppWrapper>
+      </ThemeProviderWrapper>
+    </ThemeProvider>
+  </Provider>,
 );
