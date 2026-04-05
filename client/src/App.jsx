@@ -11,6 +11,7 @@ import Home from "./pages/Home";
 import ProductDetail from "./pages/ProductDetail";
 
 import Dashboard from "./pages/admin/Dashboard";
+import RankManagement from "./pages/admin/Rank";
 
 import ProfilePage from "./pages/ProfilePage";
 import OrderHistoryPage from "./pages/OrderHistoryPage";
@@ -81,6 +82,14 @@ function App() {
             element={
               <AdminRoute>
                 <Dashboard />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/rank"
+            element={
+              <AdminRoute>
+                <RankManagement />
               </AdminRoute>
             }
           />
