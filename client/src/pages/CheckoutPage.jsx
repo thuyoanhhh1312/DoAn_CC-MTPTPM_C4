@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { ToastContainer, toast } from "react-toastify";
 import MainLayout from "../layout/MainLayout";
 import orderApi from "../api/orderApi";
+import vnpayApi from "../api/vnpayApi";
 import "react-toastify/dist/ReactToastify.css";
 
 const provincesMock = [
@@ -46,12 +47,14 @@ const paymentOptions = [
   {
     id: "cod",
     title: "Thanh toán tiền mặt khi nhận hàng (COD)",
-    description: "Cọc trước 10% qua xác nhận đơn hàng, thanh toán phần còn lại khi nhận sản phẩm.",
+    description:
+      "Tạo đơn trước, sau đó thanh toán cọc 10% qua VNPay để xác nhận giữ sản phẩm.",
   },
   {
     id: "vnpay",
     title: "Thanh toán qua VNPay",
-    description: "Thanh toán toàn bộ trực tuyến sau khi xác nhận thông tin đơn hàng.",
+    description:
+      "Thanh toán toàn bộ đơn hàng trực tuyến sau khi hệ thống tạo đơn thành công.",
   },
 ];
 
@@ -64,6 +67,7 @@ const formatPrice = (value) =>
 const CheckoutPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const user = useSelector((state) => state.user);
   const { selectedItems = [], totalAmount = 0 } = location.state || {};
 
@@ -108,70 +112,67 @@ const CheckoutPage = () => {
     );
   }, [selectedItems, totalAmount]);
 
-  const discount = useMemo(() => {
-    return Number(promoApplied?.discount ?? 0);
-  }, [promoApplied, subTotal]);
+  const discount = useMemo(
+    () => Number(promoApplied?.discount ?? 0),
+    [promoApplied],
+  );
 
   const total = Math.max(0, subTotal - discount);
   const depositAmount = Math.round(total * 0.1);
 
-  const handleApplyPromo = () => {
-    const apply = async () => {
-      const normalized = promoCode.trim().toUpperCase();
+  const handleApplyPromo = async () => {
+    const normalized = promoCode.trim().toUpperCase();
 
-      if (!normalized) {
-        toast.warn("Vui lòng nhập mã ưu đãi.");
-        return;
-      }
+    if (!normalized) {
+      toast.warn("Vui lòng nhập mã ưu đãi.");
+      return;
+    }
 
-      if (!user?.id || !user?.token) {
-        toast.error("Vui lòng đăng nhập để áp dụng mã khuyến mãi.");
-        return;
-      }
+    if (!user?.id || !user?.token) {
+      toast.error("Vui lòng đăng nhập để áp dụng mã khuyến mãi.");
+      return;
+    }
 
-      if (!selectedItems.length) {
-        toast.error("Không có sản phẩm nào để áp dụng mã.");
-        return;
-      }
+    if (!selectedItems.length) {
+      toast.error("Không có sản phẩm nào để áp dụng mã.");
+      return;
+    }
 
-      setPromoLoading(true);
+    setPromoLoading(true);
 
-      try {
-        const response = await orderApi.calculatePrice(
-          {
-            items: selectedItems.map((item) => ({
-              product_id: item.product_id,
-              quantity: item.count ?? 1,
-            })),
-            promotion_code: normalized,
-            user_id: user.id,
-          },
-          user.token,
-        );
+    try {
+      const response = await orderApi.calculatePrice(
+        {
+          items: selectedItems.map((item) => ({
+            product_id: item.product_id,
+            quantity: item.count ?? 1,
+          })),
+          promotion_code: normalized,
+          user_id: user.id,
+        },
+        user.token,
+      );
 
-        if (response.valid) {
-          setPromoApplied({
-            code: response.promotion?.promotion_code ?? normalized,
-            description: response.promotion?.description ?? "",
-            discount_percent: response.promotion?.discount_percent ?? 0,
-            discount: response.discount ?? 0,
-          });
-          toast.success(response.message || "Áp dụng mã ưu đãi thành công.");
-        } else {
-          setPromoApplied(null);
-          toast.error(response.message || "Mã ưu đãi không hợp lệ.");
-        }
-      } catch (error) {
+      if (response.valid) {
+        setPromoApplied({
+          code: response.promotion?.promotion_code ?? normalized,
+          description: response.promotion?.description ?? "",
+          discount_percent: response.promotion?.discount_percent ?? 0,
+          discount: response.discount ?? 0,
+        });
+        toast.success(response.message || "Áp dụng mã ưu đãi thành công.");
+      } else {
         setPromoApplied(null);
-        toast.error(
-          error.response?.data?.message || "Lỗi khi áp dụng mã khuyến mãi.",
-        );
-      } finally {
-        setPromoLoading(false);
+        toast.error(response.message || "Mã ưu đãi không hợp lệ.");
       }
-    };
-
-    apply();
+    } catch (error) {
+      setPromoApplied(null);
+      toast.error(
+        error.response?.data?.message || "Lỗi khi áp dụng mã khuyến mãi.",
+      );
+    } finally {
+      setPromoLoading(false);
+    }
   };
 
   const handleRemovePromo = () => {
@@ -183,6 +184,11 @@ const CheckoutPage = () => {
   const validateForm = () => {
     if (!selectedItems.length) {
       toast.error("Không có sản phẩm nào để thanh toán.");
+      return false;
+    }
+
+    if (!user?.id || !user?.token) {
+      toast.error("Vui lòng đăng nhập để tiếp tục đặt hàng.");
       return false;
     }
 
@@ -204,15 +210,103 @@ const CheckoutPage = () => {
     return true;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
+    const shippingAddress = [addressDetail, ward, district, province]
+      .filter(Boolean)
+      .join(", ");
+
+    const orderPayload = {
+      user_id: user.id,
+      promotion_code: promoApplied?.code || null,
+      payment_method: paymentMethod,
+      shipping_address: shippingAddress,
+      is_deposit: paymentMethod === "cod",
+      deposit_status: paymentMethod === "cod" ? "pending" : "none",
+      items: selectedItems.map((item) => ({
+        product_id: item.product_id,
+        quantity: item.count ?? 1,
+        price: item.price,
+      })),
+    };
+
     setSubmitting(true);
-    window.setTimeout(() => {
+
+    try {
+      const response = await orderApi.checkout(orderPayload, user.token);
+      const createdOrder = response?.order;
+
+      if (!createdOrder?.order_id) {
+        throw new Error("Không nhận được mã đơn hàng từ hệ thống.");
+      }
+
+      localStorage.setItem(
+        "purchasedItems",
+        JSON.stringify(selectedItems.map((item) => item.product_id)),
+      );
+      dispatch({ type: "CLEAR_CART" });
+
+      if (paymentMethod === "vnpay") {
+        try {
+          const paymentResponse = await vnpayApi.createPaymentUrl(
+            createdOrder.order_id,
+            total,
+          );
+
+          if (paymentResponse?.paymentUrl) {
+            window.location.href = paymentResponse.paymentUrl;
+            return;
+          }
+
+          throw new Error("Không tạo được đường dẫn thanh toán.");
+        } catch (_error) {
+          toast.warning(
+            "Đã tạo đơn hàng nhưng chưa kết nối được cổng VNPay. Bạn có thể kiểm tra đơn trong lịch sử đơn hàng.",
+          );
+          navigate("/order-history");
+          return;
+        }
+      }
+
+      if (paymentMethod === "cod") {
+        try {
+          const paymentResponse = await vnpayApi.createPaymentUrl(
+            createdOrder.order_id,
+            depositAmount,
+          );
+
+          toast.info(
+            "Vui lòng thanh toán cọc 10% qua VNPay để hoàn tất xác nhận đơn hàng.",
+          );
+
+          if (paymentResponse?.paymentUrl) {
+            window.location.href = paymentResponse.paymentUrl;
+            return;
+          }
+
+          throw new Error("Không tạo được đường dẫn đặt cọc.");
+        } catch (_error) {
+          toast.warning(
+            "Đơn hàng đã được tạo ở trạng thái chờ cọc. Hiện chưa chuyển được sang VNPay, bạn có thể theo dõi đơn trong lịch sử đơn hàng.",
+          );
+          navigate("/order-history");
+          return;
+        }
+      }
+
+      toast.success("Đơn hàng đã được tạo thành công.");
+      navigate("/order-history");
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message ||
+          error.message ||
+          "Lỗi khi đặt hàng. Vui lòng thử lại sau.",
+      );
+    } finally {
       setSubmitting(false);
-      toast.success("Đơn hàng đã được xác nhận ở giao diện demo checkout.");
-    }, 900);
+    }
   };
 
   return (
@@ -228,8 +322,18 @@ const CheckoutPage = () => {
           onClick={() => navigate(-1)}
           className="mb-5 flex items-center gap-2 font-bold text-[#003468] transition hover:text-[#001d3d]"
         >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15.75 19.5L8.25 12l7.5-7.5"
+            />
           </svg>
           Quay lại
         </button>
@@ -242,7 +346,9 @@ const CheckoutPage = () => {
           <div className="space-y-6">
             <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-[#003468]">Sản phẩm đã chọn</h2>
+                <h2 className="text-lg font-bold text-[#003468]">
+                  Sản phẩm đã chọn
+                </h2>
                 <span className="rounded-full bg-[#f4ede4] px-3 py-1 text-xs font-semibold text-[#C58C46]">
                   {selectedItems.length} sản phẩm
                 </span>
@@ -250,7 +356,8 @@ const CheckoutPage = () => {
 
               {selectedItems.length === 0 ? (
                 <div className="rounded-xl bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
-                  Không có sản phẩm nào. Quay lại giỏ hàng để chọn sản phẩm trước khi checkout.
+                  Không có sản phẩm nào. Quay lại giỏ hàng để chọn sản phẩm trước
+                  khi checkout.
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -260,16 +367,26 @@ const CheckoutPage = () => {
                       className="flex items-center gap-4 border-b border-gray-100 pb-4 last:border-b-0 last:pb-0"
                     >
                       <img
-                        src={item.ProductImages?.[0]?.image_url || item.image_url || "https://cdn.pnj.io/images/logo/pnj.com.vn.png"}
+                        src={
+                          item.ProductImages?.[0]?.image_url ||
+                          item.image_url ||
+                          "https://cdn.pnj.io/images/logo/pnj.com.vn.png"
+                        }
                         alt={item.product_name}
                         className="h-16 w-16 rounded-lg object-cover"
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-[#003468]">{item.product_name}</p>
-                        <p className="mt-1 text-sm text-gray-500">Số lượng: <strong>{item.count}</strong></p>
+                        <p className="font-semibold text-[#003468]">
+                          {item.product_name}
+                        </p>
+                        <p className="mt-1 text-sm text-gray-500">
+                          Số lượng: <strong>{item.count}</strong>
+                        </p>
                         <div className="mt-1 flex items-center gap-2 text-sm">
                           <span className="text-gray-500">Đơn giá:</span>
-                          <span className="font-bold text-[#C58C46]">{formatPrice(item.price)}</span>
+                          <span className="font-bold text-[#C58C46]">
+                            {formatPrice(item.price)}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -279,7 +396,9 @@ const CheckoutPage = () => {
             </section>
 
             <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-              <h2 className="mb-4 text-lg font-bold text-[#003468]">Mã ưu đãi</h2>
+              <h2 className="mb-4 text-lg font-bold text-[#003468]">
+                Mã ưu đãi
+              </h2>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <input
                   type="text"
@@ -308,11 +427,16 @@ const CheckoutPage = () => {
               {promoApplied && (
                 <div className="mt-4 flex items-start justify-between gap-4 rounded-2xl border border-blue-300 bg-[#e3f1fc] p-4">
                   <div>
-                    <p className="font-bold text-blue-700">Mã ưu đãi: {promoApplied.code}</p>
-                    <p className="mt-1 text-sm text-[#003468]">
-                      Giảm {promoApplied.discount_percent}% ({formatPrice(discount)})
+                    <p className="font-bold text-blue-700">
+                      Mã ưu đãi: {promoApplied.code}
                     </p>
-                    <p className="mt-1 text-sm text-blue-700">{promoApplied.description}</p>
+                    <p className="mt-1 text-sm text-[#003468]">
+                      Giảm {promoApplied.discount_percent}% (
+                      {formatPrice(discount)})
+                    </p>
+                    <p className="mt-1 text-sm text-blue-700">
+                      {promoApplied.description}
+                    </p>
                   </div>
                   <button
                     type="button"
@@ -320,8 +444,18 @@ const CheckoutPage = () => {
                     className="flex h-9 w-9 items-center justify-center rounded-full text-blue-700 transition hover:bg-white/60"
                     title="Bỏ mã khuyến mãi"
                   >
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -329,7 +463,9 @@ const CheckoutPage = () => {
             </section>
 
             <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-              <h2 className="mb-4 text-lg font-bold text-[#003468]">Địa chỉ nhận hàng</h2>
+              <h2 className="mb-4 text-lg font-bold text-[#003468]">
+                Địa chỉ nhận hàng
+              </h2>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <input
@@ -403,7 +539,9 @@ const CheckoutPage = () => {
             </section>
 
             <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-              <h2 className="mb-4 text-lg font-bold text-[#003468]">Phương thức thanh toán</h2>
+              <h2 className="mb-4 text-lg font-bold text-[#003468]">
+                Phương thức thanh toán
+              </h2>
               <div className="space-y-3">
                 {paymentOptions.map((option) => {
                   const active = paymentMethod === option.id;
@@ -421,13 +559,19 @@ const CheckoutPage = () => {
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <p className="font-semibold">{option.title}</p>
-                          <p className={`mt-1 text-sm ${active ? "text-white/80" : "text-gray-500"}`}>
+                          <p
+                            className={`mt-1 text-sm ${
+                              active ? "text-white/80" : "text-gray-500"
+                            }`}
+                          >
                             {option.description}
                           </p>
                         </div>
                         <span
                           className={`mt-1 h-5 w-5 rounded-full border-2 ${
-                            active ? "border-white bg-white/20" : "border-gray-300"
+                            active
+                              ? "border-white bg-white/20"
+                              : "border-gray-300"
                           }`}
                         />
                       </div>
@@ -438,21 +582,26 @@ const CheckoutPage = () => {
 
               {paymentMethod === "vnpay" && (
                 <p className="mt-4 text-sm text-gray-500">
-                  Sau khi đặt hàng, bạn sẽ được chuyển đến cổng thanh toán VNPay để thanh toán toàn bộ.
+                  Sau khi tạo đơn, bạn sẽ được chuyển đến cổng thanh toán VNPay
+                  để thanh toán toàn bộ đơn hàng.
                 </p>
               )}
 
               {paymentMethod === "cod" && (
                 <div className="mx-auto mt-5 max-w-[420px] rounded-2xl border border-amber-400 bg-[#fff3cd] p-4 text-center">
-                  <p className="font-bold text-[#856404]">Bắt buộc cọc 10% qua xác nhận đơn hàng</p>
+                  <p className="font-bold text-[#856404]">
+                    Bắt buộc cọc 10% qua VNPay
+                  </p>
                   <p className="mt-2 text-sm text-gray-600">
-                    Thanh toán trước một phần để giữ sản phẩm, phần còn lại thanh toán khi nhận hàng.
+                    Hệ thống sẽ tạo đơn trước, sau đó chuyển bạn sang bước thanh
+                    toán cọc để giữ sản phẩm.
                   </p>
                   <p className="mt-2 font-semibold text-red-500">
                     Số tiền cọc: <strong>{formatPrice(depositAmount)}</strong>
                   </p>
                   <p className="mt-1 text-sm text-gray-500">
-                    Thanh toán {formatPrice(total - depositAmount)} còn lại khi nhận hàng
+                    Thanh toán {formatPrice(total - depositAmount)} còn lại khi
+                    nhận hàng
                   </p>
                 </div>
               )}
@@ -461,7 +610,9 @@ const CheckoutPage = () => {
 
           <aside className="space-y-6">
             <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:sticky lg:top-28">
-              <h2 className="mb-4 text-lg font-bold text-[#003468]">Tổng tiền</h2>
+              <h2 className="mb-4 text-lg font-bold text-[#003468]">
+                Tổng tiền
+              </h2>
 
               <div className="space-y-3 text-sm font-medium text-gray-700">
                 <div className="flex items-center justify-between">
@@ -484,7 +635,9 @@ const CheckoutPage = () => {
               </div>
 
               <div className="mt-5 rounded-2xl bg-gray-50 p-4 text-sm text-gray-600">
-                <p className="font-semibold text-[#003468]">Thông tin giao nhận</p>
+                <p className="font-semibold text-[#003468]">
+                  Thông tin giao nhận
+                </p>
                 <p className="mt-2">
                   {recipientName || "Chưa nhập tên người nhận"}
                 </p>
@@ -492,16 +645,29 @@ const CheckoutPage = () => {
                   {recipientPhone || "Chưa nhập số điện thoại"}
                 </p>
                 <p className="mt-1">
-                  {[addressDetail, ward, district, province].filter(Boolean).join(", ") || "Chưa hoàn tất địa chỉ giao hàng"}
+                  {[addressDetail, ward, district, province]
+                    .filter(Boolean)
+                    .join(", ") || "Chưa hoàn tất địa chỉ giao hàng"}
                 </p>
               </div>
+
+              {paymentMethod === "cod" && (
+                <div className="mt-4 rounded-2xl border border-dashed border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
+                  Sau khi tạo đơn, hệ thống sẽ chuyển sang bước cọc
+                  <strong> {formatPrice(depositAmount)}</strong> qua VNPay.
+                </div>
+              )}
 
               <button
                 type="submit"
                 disabled={submitting || !selectedItems.length}
-                className="mt-5 flex h-13 w-full items-center justify-center rounded-xl bg-[#003468] px-4 py-3 text-base font-bold text-white transition hover:bg-[#002954] disabled:cursor-not-allowed disabled:bg-gray-300"
+                className="mt-5 flex w-full items-center justify-center rounded-xl bg-[#003468] px-4 py-3 text-base font-bold text-white transition hover:bg-[#002954] disabled:cursor-not-allowed disabled:bg-gray-300"
               >
-                {submitting ? "Đang xử lý..." : "ĐẶT HÀNG"}
+                {submitting
+                  ? "Đang xử lý..."
+                  : paymentMethod === "cod"
+                    ? "ĐẶT HÀNG VÀ CỌC 10%"
+                    : "ĐẶT HÀNG VÀ THANH TOÁN"}
               </button>
             </section>
           </aside>
