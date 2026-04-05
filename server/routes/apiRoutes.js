@@ -36,6 +36,8 @@ import campaignRoutes from "./campaignRoutes.js";
 import * as dashboardController from "../controllers/dashboardController.js";
 
 import * as tagController from "../controllers/tagController.js";
+import rankRoutes from "./rankRoutes.js";
+
 router.get("/tags", tagController.getAllTags);
 
 const blogUploadDir = path.join(process.cwd(), "uploads", "blog");
@@ -366,4 +368,7 @@ router.get(
 );
 // Campaign routes
 router.use("/campaigns", campaignRoutes);
+// Rank routes
+router.use("/rank", authenticateToken, isAdmin, rankRoutes);
+
 export default router;
