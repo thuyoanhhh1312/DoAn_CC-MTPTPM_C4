@@ -21,6 +21,7 @@ import * as articleController from "../controllers/articleController.js";
 import * as articleCategoryController from "../controllers/articleCategoryController.js";
 import * as dashboardController from "../controllers/dashboardController.js";
 import * as tagController from "../controllers/tagController.js";
+import * as promotionController from "../controllers/promotionController.js";
 
 // Route imports
 import campaignRoutes from "./campaignRoutes.js";
@@ -38,6 +39,12 @@ import {
   rejectToxicReviewSchema,
   getToxicReviewsSchema,
 } from "../validators/reviewValidator.js";
+import {
+  createPromotionSchema,
+  updatePromotionSchema,
+  getPromotionByIdSchema,
+  getAllPromotionsSchema,
+} from "../validators/promotionValidator.js";
 
 // Product controller functions
 const { getSimilarProducts, filterProducts, getProductsByCategory, getSimilarProductsWithPagination } = productController;
@@ -487,6 +494,55 @@ router.get(
   isAdmin,
   dashboardController.getOrderCountByPeriod,
 );
+
+// ============ PROMOTION ROUTES ============
+// GET all promotions with pagination & filters
+router.get(
+  "/promotions",
+  validateRequest(getAllPromotionsSchema),
+  promotionController.getAllPromotions
+);
+
+// GET promotions for current customer (public) - Must come BEFORE /:id
+router.get(
+  "/promotions/customer",
+  authenticateToken,
+  promotionController.getCustomerPromotions
+);
+
+// GET promotion by ID
+router.get(
+  "/promotions/:id",
+  validateRequest(getPromotionByIdSchema),
+  promotionController.getPromotionById
+);
+
+// POST create promotion (admin only)
+router.post(
+  "/promotions",
+  authenticateToken,
+  isAdmin,
+  validateRequest(createPromotionSchema),
+  promotionController.createPromotion
+);
+
+// PUT update promotion (admin only)
+router.put(
+  "/promotions/:id",
+  authenticateToken,
+  isAdmin,
+  validateRequest(updatePromotionSchema),
+  promotionController.updatePromotion
+);
+
+// DELETE promotion (admin only)
+router.delete(
+  "/promotions/:id",
+  authenticateToken,
+  isAdmin,
+  promotionController.deletePromotion
+);
+
 // Campaign routes
 router.use("/campaigns", campaignRoutes);
 router.use("/promotion-logs", authenticateToken, promotionLogRoutes);
