@@ -16,6 +16,7 @@ import * as searchController from "../controllers/searchController.js";
 import * as categoryController from "../controllers/categoryController.js";
 import * as subCategoryController from "../controllers/subCategoryController.js";
 import * as productReviewController from "../controllers/productReviewController.js";
+import * as toxicReviewController from "../controllers/toxicReviewController.js";
 import * as articleController from "../controllers/articleController.js";
 import * as articleCategoryController from "../controllers/articleCategoryController.js";
 import * as dashboardController from "../controllers/dashboardController.js";
@@ -29,6 +30,14 @@ import promotionLogRoutes from "./promotionLogRoutes.js";
 import { registerSchema, loginSchema, updateProfileSchema } from "../validators/authValidator.js";
 import { createArticleSchema, updateArticleSchema } from "../validators/articleValidator.js";
 import { calculatePriceSchema, checkoutSchema, updateDepositSchema } from "../validators/orderValidator.js";
+import {
+  labelSentimentSchema,
+  bulkLabelSentimentSchema,
+  bulkUpdateToxicReviewSchema,
+  approveToxicReviewSchema,
+  rejectToxicReviewSchema,
+  getToxicReviewsSchema,
+} from "../validators/reviewValidator.js";
 
 // Product controller functions
 const { getSimilarProducts, filterProducts, getProductsByCategory, getSimilarProductsWithPagination } = productController;
@@ -315,6 +324,77 @@ router.post(
   "/products/:id/reviews",
   authenticateToken,
   productReviewController.createReview,
+);
+
+// ✅ ADMIN: Toxic Review Management
+router.get(
+  "/admin/toxic-reviews",
+  authenticateToken,
+  isAdmin,
+  validateRequest(getToxicReviewsSchema),
+  toxicReviewController.getToxicReviews,
+);
+
+router.get(
+  "/admin/toxic-reviews/stats",
+  authenticateToken,
+  isAdmin,
+  toxicReviewController.getToxicReviewStats,
+);
+
+router.get(
+  "/admin/toxic-reviews/highest-score",
+  authenticateToken,
+  isAdmin,
+  toxicReviewController.getHighestScoringToxicReviews,
+);
+
+router.get(
+  "/admin/toxic-reviews/:reviewId",
+  authenticateToken,
+  isAdmin,
+  toxicReviewController.getToxicReviewDetail,
+);
+
+router.patch(
+  "/admin/toxic-reviews/:reviewId/approve",
+  authenticateToken,
+  isAdmin,
+  validateRequest(approveToxicReviewSchema),
+  toxicReviewController.approveToxicReview,
+);
+
+router.patch(
+  "/admin/toxic-reviews/:reviewId/reject",
+  authenticateToken,
+  isAdmin,
+  validateRequest(rejectToxicReviewSchema),
+  toxicReviewController.rejectToxicReview,
+);
+
+router.patch(
+  "/admin/toxic-reviews/bulk-update",
+  authenticateToken,
+  isAdmin,
+  validateRequest(bulkUpdateToxicReviewSchema),
+  toxicReviewController.bulkUpdateToxicReviews,
+);
+
+// ✅ ADMIN/STAFF: Sentiment Labeling
+router.patch(
+  "/admin/reviews/:reviewId/label-sentiment",
+  authenticateToken,
+  isAdminOrStaff,
+  validateRequest(labelSentimentSchema),
+  productReviewController.adminLabelSentiment,
+);
+
+router.patch(
+  "/admin/reviews/bulk-label-sentiment",
+  authenticateToken,
+  isAdminOrStaff,
+  validateRequest(bulkLabelSentimentSchema),
+  productReviewController.bulkLabelSentiment,
 );
 
 // Public

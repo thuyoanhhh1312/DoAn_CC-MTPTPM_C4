@@ -1,5 +1,6 @@
 import db from "../models/index.js";
 import axios from "axios";
+import { Sequelize } from "sequelize";
 import { VALID_HIDE_REASON_VALUES } from "../config/reviewConstants.js";
 
 const getSuspiciousReviewInfo = (review) => {
@@ -901,6 +902,80 @@ export const getReviewSummaryPublicDetailed = async (req, res, next) => {
     return next({
       statusCode: 500,
       message: "Lỗi lấy tổng quan đánh giá",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * ✅ PATCH /admin/reviews/bulk-label-sentiment
+ * Gán sentiment thủ công cho nhiều reviews
+ */
+export const bulkLabelSentiment = async (req, res, next) => {
+  try {
+    const { review_ids, sentiment } = req.body;
+
+    if (!Array.isArray(review_ids) || review_ids.length === 0) {
+      return next({
+        statusCode: 400,
+        message: "review_ids phải là mảng không rỗng",
+      });
+    }
+
+    const allowedSentiments = ["POS", "NEG", "NEU", "UNC"];
+
+    if (!allowedSentiments.includes(sentiment)) {
+      return next({
+        statusCode: 400,
+        message: "Sentiment không hợp lệ (POS, NEG, NEU, UNC)",
+      });
+    }
+
+    // Find all reviews with given IDs
+    const reviews = await db.ProductReview.findAll({
+      where: {
+        review_id: {
+          [db.Sequelize.Op.in]: review_ids,
+        },
+      },
+    });
+
+    if (reviews.length === 0) {
+      return next({
+        statusCode: 404,
+        message: "Không tìm thấy reviews với IDs được cung cấp",
+      });
+    }
+
+    // Update all reviews with new sentiment
+    const updated = await db.ProductReview.update(
+      {
+        sentiment: sentiment,
+        sentiment_confidence: 1.0, // do admin gán → tin cậy 100%
+        use_for_stats: true,
+        needs_admin_review: false,
+        updated_at: new Date(),
+      },
+      {
+        where: {
+          review_id: {
+            [db.Sequelize.Op.in]: reviews.map((r) => r.review_id),
+          },
+        },
+      }
+    );
+
+    return res.status(200).json({
+      message: `Gán sentiment cho ${updated[0]} reviews thành công`,
+      data: {
+        updated_count: updated[0],
+        sentiment,
+      },
+    });
+  } catch (error) {
+    return next({
+      statusCode: 500,
+      message: "Lỗi gán sentiment hàng loạt",
       error: error.message,
     });
   }
