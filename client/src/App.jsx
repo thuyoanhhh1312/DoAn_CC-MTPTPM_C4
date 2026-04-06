@@ -37,6 +37,7 @@ import AddNewsCategory from "./pages/admin/NewsCategory/add";
 import EditNewsCategory from "./pages/admin/NewsCategory/edit";
 import PromotionLogsPage from "./pages/admin/PromotionLogsPage";
 import PromotionLogSendPage from "./pages/admin/PromotionLogSendPage";
+import ReviewsModerationPage from "./pages/admin/ReviewsModerationPage";
 
 function App() {
   const dispatch = useDispatch();
@@ -210,6 +211,14 @@ function App() {
             element={
               <AdminOrStaffRoute>
                 <PromotionLogSendPage />
+              </AdminOrStaffRoute>
+            }
+          />
+          <Route
+            path="/admin/reviews"
+            element={
+              <AdminOrStaffRoute>
+                <ReviewsModerationPage />
               </AdminOrStaffRoute>
             }
           />
