@@ -324,6 +324,24 @@ const getProductsByCategory = async (categoryName) => {
   }
 };
 
+// Get products by category with pagination (new API)
+const getProductsByCategoryWithPagination = async (categoryId, page = 1, limit = 10) => {
+  try {
+    const response = await axios.get(`${API_URL}/product-by-category`, {
+      params: {
+        categoryId,
+        page,
+        limit,
+      },
+    });
+    // New API returns { code, data: { items, total, page, limit } }
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching products by category with pagination:", error);
+    throw error;
+  }
+};
+
 const getCategoriesWithSubCategories = async () => {
   try {
     const response = await axios.get(`${API_URL}/get-category-subcategory`); // API trả về danh sách category kèm theo SubCategories
@@ -363,6 +381,7 @@ export default {
   searchProduct,
   getProductWithReviewSummary,
   getProductsByCategory,
+  getProductsByCategoryWithPagination,
   filterProducts,
   getCategoriesWithSubCategories,
   quickSearchProducts,

@@ -12,6 +12,7 @@ import EditProduct from "./pages/admin/Product/edit";
 import Search from "./pages/Search";
 import Home from "./pages/Home.js";
 import ProductDetail from "./pages/ProductDetail";
+import CategoryPage from "./pages/CategoryPage";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 
@@ -244,6 +245,7 @@ function App() {
         </Route>
         <Route path="/" element={<Home />} />
         <Route path="/search" element={<Search />} />
+        <Route path="/category/:categoryId" element={<CategoryPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/:slug" element={<ProductDetail />} />
