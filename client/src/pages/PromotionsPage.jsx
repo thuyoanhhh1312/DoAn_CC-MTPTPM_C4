@@ -23,14 +23,17 @@ const PromotionsPage = () => {
         page: 1,
         limit: 50,
       });
+      console.log('Promotions API Response:', response);
       // Filter out inactive promotions (usage limit exceeded)
       const activePromotions = (response.data || []).filter(
         (promo) => !promo.usage_limit || promo.usage_count < promo.usage_limit
       );
+      console.log('Active promotions:', activePromotions);
       setPromotions(activePromotions);
     } catch (error) {
       console.error('Error fetching promotions:', error);
-      Swal.fire('Lỗi', 'Không thể tải danh sách khuyến mãi', 'error');
+      console.error('Error details:', error.response?.data || error.message);
+      Swal.fire('Lỗi', 'Không thể tải danh sách khuyến mãi\n\n' + (error.response?.data?.message || error.message), 'error');
     } finally {
       setLoading(false);
     }
