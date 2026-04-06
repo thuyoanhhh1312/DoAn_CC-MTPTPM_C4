@@ -13,8 +13,10 @@ import ReviewSummaryAdmin from "../components/ReviewSummaryAdmin";
 import ReviewTabs from "../components/ReviewTabs";
 import AddToCartModal from "../components/AddToCartModal";
 import LightboxViewer from "../components/LightboxViewer";
+import ProductCard from "../components/ui/product/productCard";
 import { AiOutlineShoppingCart, AiOutlinePhone } from "react-icons/ai";
 import ThreeDViewer from "../components/ThreeDViewer";
+import { Row, Col, Empty, Spin } from "antd";
 
 // Map all GLB assets by slug (filename without extension)
 const modelImports = import.meta.glob("../assets/3d/*.glb", {
@@ -42,6 +44,8 @@ const ProductDetail = () => {
   const [isPolicyVisible, setIsPolicyVisible] = useState(false);
   const [isFAQVisible, setIsFAQVisible] = useState(false);
   const [similarProducts, setSimilarProducts] = useState([]);
+  const [loadingSimilarProducts, setLoadingSimilarProducts] = useState(false);
+  const [errorSimilarProducts, setErrorSimilarProducts] = useState(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [reviews, setReviews] = useState([]);
   const [reviewSummary, setReviewSummary] = useState(null);
@@ -70,11 +74,25 @@ const ProductDetail = () => {
     try {
       const res = await productApi.getProductBySlug(slug);
       setProduct(res?.product);
-      const similarRes = await productApi.getSimilarProducts(
-        res.category_id,
-        res.subcategory_id,
-      );
-      setSimilarProducts(similarRes);
+      
+      // Fetch similar products
+      setLoadingSimilarProducts(true);
+      setErrorSimilarProducts(null);
+      try {
+        const similarRes = await productApi.getSimilarProducts(
+          res.category_id,
+          res.subcategory_id,
+        );
+        // API returns an array of products or empty array
+        setSimilarProducts(Array.isArray(similarRes) ? similarRes : []);
+      } catch (error) {
+        console.error("Lỗi khi lấy sản phẩm tương tự:", error);
+        setErrorSimilarProducts(error.message || "Lỗi khi tải sản phẩm tương tự");
+        setSimilarProducts([]);
+      } finally {
+        setLoadingSimilarProducts(false);
+      }
+      
       setIsDescriptionVisible(true);
     } catch (error) {
       console.error("Lỗi khi lấy chi tiết sản phẩm:", error);
@@ -811,6 +829,49 @@ const ProductDetail = () => {
 
           {reviews && reviews.length > 0 && <ReviewTabs reviews={reviews} />}
         </section>
+
+        {/* Similar Products Section */}
+        {!errorSimilarProducts && (similarProducts.length > 0 || loadingSimilarProducts) && (
+          <section className="py-12 px-4 sm:px-8 bg-white rounded-2xl">
+            <div className="max-w-[1280px] mx-auto">
+              {/* Section Title */}
+              <div className="mb-8">
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                  Sản phẩm tương tự
+                </h2>
+                <p className="text-gray-500 text-sm sm:text-base">
+                  Khám phá những sản phẩm khác trong cùng danh mục
+                </p>
+              </div>
+
+              {/* Similar Products Grid */}
+              {loadingSimilarProducts ? (
+                <div className="flex items-center justify-center py-12">
+                  <Spin size="large" tip="Đang tải sản phẩm tương tự..." />
+                </div>
+              ) : similarProducts.length === 0 ? (
+                <Empty
+                  description="Không có sản phẩm tương tự"
+                  style={{ marginY: '40px' }}
+                />
+              ) : (
+                <Row gutter={[24, 24]}>
+                  {similarProducts.map((product) => (
+                    <Col
+                      key={product.product_id}
+                      xs={{ span: 24 }}      // Mobile: 1 column
+                      sm={{ span: 12 }}      // Tablet: 2 columns
+                      md={{ span: 8 }}       // Laptop: 3 columns
+                      lg={{ span: 6 }}       // Desktop: 4 columns
+                    >
+                      <ProductCard product={product} />
+                    </Col>
+                  ))}
+                </Row>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* Viewed Products */}
         <ViewedProducts />
