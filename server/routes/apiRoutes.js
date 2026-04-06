@@ -29,6 +29,7 @@ import {
   authenticateToken,
   isAdminOrStaff,
 } from "../middlewares/auth.js";
+import { authorizeRoles, ROLE_IDS } from "../middlewares/rbac.js";
 import * as authController from "../controllers/authController.js";
 import * as customerController from "../controllers/customerController.js";
 import * as productController from "../controllers/productController.js";
@@ -41,9 +42,18 @@ import * as productReviewController from "../controllers/productReviewController
 import campaignRoutes from "./campaignRoutes.js";
 import promotionLogRoutes from "./promotionLogRoutes.js";
 import * as dashboardController from "../controllers/dashboardController.js";
+import * as roleController from "../controllers/roleController.js";
 
 import * as tagController from "../controllers/tagController.js";
 router.get("/tags", tagController.getAllTags);
+router.get(
+  "/roles",
+  authenticateToken,
+  authorizeRoles([ROLE_IDS.ADMIN, ROLE_IDS.STAFF, "admin", "staff"], {
+    message: "Ban khong co quyen xem danh sach vai tro.",
+  }),
+  roleController.getAllRoles,
+);
 
 const blogUploadDir = path.join(process.cwd(), "uploads", "blog");
 if (!fs.existsSync(blogUploadDir)) {
