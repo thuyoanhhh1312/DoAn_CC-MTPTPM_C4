@@ -31,7 +31,7 @@ import { createArticleSchema, updateArticleSchema } from "../validators/articleV
 import { calculatePriceSchema, checkoutSchema, updateDepositSchema } from "../validators/orderValidator.js";
 
 // Product controller functions
-const { getSimilarProducts, filterProducts } = productController;
+const { getSimilarProducts, filterProducts, getProductsByCategory, getSimilarProductsWithPagination } = productController;
 
 const router = express.Router();
 router.get("/tags", tagController.getAllTags);
@@ -114,8 +114,8 @@ router.get("/customers/by-user/:userId", customerController.getCustomer);
 router.get("/products", productController.getAllProducts);
 router.get("/products/with-review-summary", productController.getAllProductsWithRatingSummary);
 router.get("/products/filter", filterProducts);
-router.get("/products/similar", getSimilarProducts);
-router.get("/product-by-category", productController.getProductsByCategoryWithRatingSummary);
+router.get("/products/similar", getSimilarProductsWithPagination);
+router.get("/product-by-category", getProductsByCategory);
 router.get("/get-product-by-slug/:slug", productController.getProductBySlug);
 router.get("/get-product-top-rated-by-sentiment", productController.getTopRatedProductsBySentiment);
 router.get("/get-category-subcategory", productController.getCategoryesWithSubCategory);

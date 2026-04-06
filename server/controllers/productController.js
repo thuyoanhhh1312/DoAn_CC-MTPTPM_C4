@@ -813,3 +813,161 @@ export const uploadProductImages = async (req, res) => {
     });
   }
 };
+
+/**
+ * GET /api/product-by-category
+ * Lấy sản phẩm theo danh mục với phân trang
+ * Query params:
+ * - categoryId (required): ID của danh mục
+ * - page (optional): Trang (default: 1)
+ * - limit (optional): Số lượng items trên trang (default: 10)
+ */
+export const getProductsByCategory = async (req, res) => {
+  try {
+    const { categoryId, page = 1, limit = 10 } = req.query;
+
+    // Validation: Kiểm tra categoryId
+    if (!categoryId || !Number.isInteger(Number(categoryId)) || Number(categoryId) <= 0) {
+      return res.status(400).json({
+        code: 400,
+        message: "categoryId là bắt buộc và phải là số nguyên dương",
+      });
+    }
+
+    const parsedCategoryId = Number(categoryId);
+    const parsedPage = Math.max(1, Number(page) || 1);
+    const parsedLimit = Math.max(1, Math.min(100, Number(limit) || 10)); // Max 100 items
+
+    // Kiểm tra category tồn tại
+    const category = await db.Category.findByPk(parsedCategoryId);
+    if (!category) {
+      return res.status(404).json({
+        code: 404,
+        message: "Danh mục không tồn tại",
+      });
+    }
+
+    // Tính offset
+    const offset = (parsedPage - 1) * parsedLimit;
+
+    // Lấy tổng số sản phẩm
+    const total = await db.Product.count({
+      where: { category_id: parsedCategoryId },
+    });
+
+    // Lấy sản phẩm với phân trang
+    const products = await db.Product.findAll({
+      where: { category_id: parsedCategoryId },
+      include: [
+        {
+          model: db.Category,
+          attributes: ["category_id", "category_name"],
+        },
+        {
+          model: db.SubCategory,
+          attributes: ["subcategory_id", "subcategory_name"],
+        },
+        {
+          model: db.ProductImage,
+          attributes: ["image_id", "image_url", "alt_text", "is_main"],
+        },
+      ],
+      offset,
+      limit: parsedLimit,
+      order: [["created_at", "DESC"]],
+    });
+
+    return res.status(200).json({
+      code: 200,
+      data: {
+        items: products,
+        total,
+        page: parsedPage,
+        limit: parsedLimit,
+      },
+    });
+  } catch (error) {
+    console.error("Error in getProductsByCategory:", error);
+    return res.status(500).json({
+      code: 500,
+      message: "Lỗi khi lấy sản phẩm theo danh mục",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * GET /api/products/similar
+ * Lấy sản phẩm tương tự (cùng danh mục) với phân trang
+ * Query params:
+ * - productId (required): ID của sản phẩm
+ * - limit (optional): Số lượng kết quả (default: 10, max: 10)
+ */
+export const getSimilarProductsWithPagination = async (req, res) => {
+  try {
+    const { productId, limit = 10 } = req.query;
+
+    // Validation: Kiểm tra productId
+    if (!productId || !Number.isInteger(Number(productId)) || Number(productId) <= 0) {
+      return res.status(400).json({
+        code: 400,
+        message: "productId là bắt buộc và phải là số nguyên dương",
+      });
+    }
+
+    const parsedProductId = Number(productId);
+    const parsedLimit = Math.max(1, Math.min(10, Number(limit) || 10)); // Max 10 items
+
+    // Kiểm tra product tồn tại
+    const product = await db.Product.findByPk(parsedProductId);
+    if (!product) {
+      return res.status(404).json({
+        code: 404,
+        message: "Sản phẩm không tồn tại",
+      });
+    }
+
+    // Lấy sản phẩm cùng category (loại bỏ chính sản phẩm hiện tại)
+    const similarProducts = await db.Product.findAll({
+      where: {
+        category_id: product.category_id,
+        product_id: { [Op.ne]: parsedProductId }, // Loại bỏ product hiện tại
+      },
+      include: [
+        {
+          model: db.Category,
+          attributes: ["category_id", "category_name"],
+        },
+        {
+          model: db.SubCategory,
+          attributes: ["subcategory_id", "subcategory_name"],
+        },
+        {
+          model: db.ProductImage,
+          attributes: ["image_id", "image_url", "alt_text", "is_main"],
+        },
+      ],
+      limit: parsedLimit,
+      order: [["created_at", "DESC"]],
+    });
+
+    const total = similarProducts.length;
+
+    return res.status(200).json({
+      code: 200,
+      data: {
+        items: similarProducts,
+        total,
+        page: 1,
+        limit: parsedLimit,
+      },
+    });
+  } catch (error) {
+    console.error("Error in getSimilarProductsWithPagination:", error);
+    return res.status(500).json({
+      code: 500,
+      message: "Lỗi khi lấy sản phẩm tương tự",
+      error: error.message,
+    });
+  }
+};
