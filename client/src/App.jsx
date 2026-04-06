@@ -41,6 +41,8 @@ import AddNewsCategory from "./pages/admin/NewsCategory/add";
 import EditNewsCategory from "./pages/admin/NewsCategory/edit";
 import PromotionLogsPage from "./pages/admin/PromotionLogsPage";
 import PromotionLogSendPage from "./pages/admin/PromotionLogSendPage";
+import PromotionsPage from "./pages/PromotionsPage";
+import PromotionsAdminPage from "./pages/admin/PromotionsAdminPage";
 
 function App() {
   const dispatch = useDispatch();
@@ -242,9 +244,18 @@ function App() {
               </AdminOrStaffRoute>
             }
           />
+          <Route
+            path="/admin/promotions"
+            element={
+              <AdminOrStaffRoute>
+                <PromotionsAdminPage />
+              </AdminOrStaffRoute>
+            }
+          />
         </Route>
         <Route path="/" element={<Home />} />
         <Route path="/search" element={<Search />} />
+        <Route path="/promotions" element={<PromotionsPage />} />
         <Route path="/category/:categoryId" element={<CategoryPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />

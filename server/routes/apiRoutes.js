@@ -499,7 +499,6 @@ router.get(
 // GET all promotions with pagination & filters
 router.get(
   "/promotions",
-  validateRequest(getAllPromotionsSchema),
   promotionController.getAllPromotions
 );
 
@@ -513,7 +512,6 @@ router.get(
 // GET promotion by ID
 router.get(
   "/promotions/:id",
-  validateRequest(getPromotionByIdSchema),
   promotionController.getPromotionById
 );
 
