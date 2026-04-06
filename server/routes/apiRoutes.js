@@ -36,7 +36,7 @@ import * as productController from "../controllers/productController.js";
 import * as orderController from "../controllers/orderController.js";
 import * as searchController from "../controllers/searchController.js";
 
-import * as categoryController from "../controllers/categoryController.js";
+import * as categoryController from "../controllers/categoryControllerCompat.js";
 import * as subCategoryController from "../controllers/subCategoryController.js";
 import * as productReviewController from "../controllers/productReviewController.js";
 import campaignRoutes from "./campaignRoutes.js";

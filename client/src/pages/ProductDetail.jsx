@@ -69,12 +69,17 @@ const ProductDetail = () => {
   const handleGetProduct = async () => {
     try {
       const res = await productApi.getProductBySlug(slug);
-      setProduct(res?.product);
-      const similarRes = await productApi.getSimilarProducts(
-        res.category_id,
-        res.subcategory_id,
-      );
-      setSimilarProducts(similarRes);
+      const productData = res?.product || null;
+      setProduct(productData);
+      if (productData?.category_id) {
+        const similarRes = await productApi.getSimilarProducts(
+          productData.category_id,
+          productData.subcategory_id,
+        );
+        setSimilarProducts(similarRes);
+      } else {
+        setSimilarProducts([]);
+      }
       setIsDescriptionVisible(true);
     } catch (error) {
       console.error("Lỗi khi lấy chi tiết sản phẩm:", error);
@@ -770,6 +775,9 @@ const ProductDetail = () => {
           </div>
         </div>
 
+        {/* Viewed Products */}
+        <ViewedProducts />
+
         {/* ===== REVIEWS SECTION ===== */}
         <section className="bg-white rounded-2xl border border-gray-100 shadow-card p-6 sm:p-8 mb-12">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
@@ -811,9 +819,6 @@ const ProductDetail = () => {
 
           {reviews && reviews.length > 0 && <ReviewTabs reviews={reviews} />}
         </section>
-
-        {/* Viewed Products */}
-        <ViewedProducts />
 
         {/* ===== MODALS ===== */}
         {isReviewModalOpen && (
