@@ -16,7 +16,8 @@ import './styles.css';
 
 const AddProduct = () => {
   const navigate = useNavigate();
-  const { accessToken, user } = useSelector((state) => state.auth);
+  const user = useSelector((state) => state.user);
+  const accessToken = user?.token || localStorage.getItem("accessToken");
 
   // Form state
   const [formData, setFormData] = useState({

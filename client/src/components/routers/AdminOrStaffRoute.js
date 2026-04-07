@@ -1,29 +1,27 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
-import LoadingToRedirect from "./LoadingToRedirect";
-import { currentAdminOrStaff } from "../../api/auth";
+import { Navigate } from "react-router-dom";
 
 const AdminOrStaffRoute = ({ children }) => {
   const { user } = useSelector((state) => ({ ...state }));
-  const [ok, setOk] = useState(false);
-  const navigate = useNavigate();
 
-  useEffect(() => {
-    if (user && user.token) {
-      currentAdminOrStaff(user.token)
-        .then((res) => {
-          setOk(true);
-        })
-        .catch((err) => {
-          setOk(false);
-          navigate("/signin");
-        });
-    }
-  }, [user, navigate]);
+  let storedUser = null;
+  try {
+    storedUser = JSON.parse(localStorage.getItem("user") || "null");
+  } catch {
+    storedUser = null;
+  }
 
-  if (!ok) {
-    return <LoadingToRedirect />;
+  const currentUser = user?.token ? user : storedUser;
+  const accessToken = currentUser?.token;
+  const roleId = Number(currentUser?.role_id);
+
+  if (!accessToken) {
+    return <Navigate to="/signin" replace />;
+  }
+
+  if (roleId !== 1 && roleId !== 3) {
+    return <Navigate to="/403" replace />;
   }
 
   return children;

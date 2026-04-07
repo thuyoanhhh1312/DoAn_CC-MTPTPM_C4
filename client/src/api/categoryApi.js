@@ -1,9 +1,9 @@
 import axios from "axios";
 import axiosInstance from "./axiosInstance";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
-const getCategories = async () => {
+export const getCategories = async () => {
   try {
     const response = await axios.get(`${API_URL}/categories`);
     return response.data;
@@ -13,13 +13,13 @@ const getCategories = async () => {
   }
 };
 
-const createCategory = async (categoryName, description, accessToken) => {
+export const createCategory = async (categoryName, description, accessToken) => {
   try {
     const response = await axiosInstance.post(
       `${API_URL}/categories`,
       {
         category_name: categoryName,
-        description: description,
+        description,
       },
       {
         headers: {
@@ -34,7 +34,7 @@ const createCategory = async (categoryName, description, accessToken) => {
   }
 };
 
-const getCategoryById = async (id) => {
+export const getCategoryById = async (id) => {
   try {
     const response = await axios.get(`${API_URL}/categories/${id}`);
     return response.data;
@@ -44,13 +44,13 @@ const getCategoryById = async (id) => {
   }
 };
 
-const updateCategory = async (id, categoryName, description, accessToken) => {
+export const updateCategory = async (id, categoryName, description, accessToken) => {
   try {
     const response = await axiosInstance.put(
       `${API_URL}/categories/${id}`,
       {
         category_name: categoryName,
-        description: description,
+        description,
       },
       {
         headers: {
@@ -65,8 +65,22 @@ const updateCategory = async (id, categoryName, description, accessToken) => {
   }
 };
 
-// Xóa sản phẩm
-const deleteCategory = async (id, accessToken) => {
+export const getSubcategoriesByCategory = async (categoryId) => {
+  try {
+    const response = await axios.get(`${API_URL}/subcategories`, {
+      params: { category_id: categoryId },
+    });
+    const items = Array.isArray(response.data) ? response.data : [];
+    return items.filter(
+      (item) => Number(item.category_id) === Number(categoryId),
+    );
+  } catch (error) {
+    console.error("Error fetching subcategories by category:", error);
+    throw error;
+  }
+};
+
+export const deleteCategory = async (id, accessToken) => {
   try {
     const response = await axiosInstance.delete(`${API_URL}/categories/${id}`, {
       headers: {
@@ -85,5 +99,6 @@ export default {
   createCategory,
   getCategoryById,
   updateCategory,
+  getSubcategoriesByCategory,
   deleteCategory,
 };

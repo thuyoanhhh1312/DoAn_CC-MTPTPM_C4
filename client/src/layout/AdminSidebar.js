@@ -27,46 +27,55 @@ const allNavItems = [
     icon: <Inventory2Icon fontSize="medium" />,
     name: "Product",
     path: "/admin/products",
+    rolesAllowed: [1, 3],
   },
   {
     icon: <CategoryIcon fontSize="medium" />,
     name: "Category",
     path: "/admin/categories",
+    rolesAllowed: [1, 3],
   },
   {
     icon: <CategoryIcon fontSize="medium" />,
     name: "Subcategory",
     path: "/admin/subcategories",
+    rolesAllowed: [1, 3],
   },
   {
     icon: <LocalOfferIcon fontSize="medium" />,
     name: "Campaign",
     path: "/admin/campaigns",
+    rolesAllowed: [1],
   },
   {
     icon: <LocalOfferIcon fontSize="medium" />,
     name: "Promotion",
     path: "/admin/promotions",
+    rolesAllowed: [1],
   },
   {
     icon: <LocalOfferIcon fontSize="medium" />,
     name: "Promotion Logs",
     path: "/admin/promotion-logs",
+    rolesAllowed: [1],
   },
   {
     icon: <NewspaperIcon fontSize="medium" />,
     name: "News",
     path: "/admin/news",
+    rolesAllowed: [1, 3],
   },
   {
     icon: <RateReviewIcon fontSize="medium" />,
     name: "Reviews",
     path: "/admin/reviews",
+    rolesAllowed: [1, 3],
   },
   {
     icon: <ListAltIcon fontSize="medium" />,
     name: "Order",
     path: "/admin/orders",
+    rolesAllowed: [1, 3],
   },
   {
     icon: <DashboardIcon fontSize="medium" />,
@@ -84,11 +93,12 @@ const allNavItems = [
     icon: <PeopleIcon fontSize="medium" />,
     name: "Customer",
     path: "/admin/customers",
+    rolesAllowed: [1],
   },
   {
     icon: <AccountCircleIcon fontSize="medium" />,
     name: "User Profile",
-    path: "/admin/user",
+    path: "/admin/users",
     rolesAllowed: [1],
   },
 ];
@@ -112,12 +122,7 @@ const AdminSidebar = () => {
 
   // Memo navItems theo user.role_id
   const navItems = useMemo(() => {
-    let filtered = filterNavItemsByRole(allNavItems, user?.role_id);
-    if (user?.role_id === 3) {
-      // staff ẩn Dashboard
-      filtered = filtered.filter((item) => item.name !== "Dashboard");
-    }
-    return filtered;
+    return filterNavItemsByRole(allNavItems, user?.role_id);
   }, [user?.role_id]);
 
   const [openSubmenu, setOpenSubmenu] = useState(null);

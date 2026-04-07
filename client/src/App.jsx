@@ -22,7 +22,8 @@ import ProfilePage from "./pages/ProfilePage";
 import OrderHistoryPage from "./pages/OrderHistoryPage";
 import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
-import { useDispatch } from "react-redux";
+import Forbidden from "./pages/AuthPages/Forbidden";
+import { useDispatch, useSelector } from "react-redux";
 import AdminRoute from "./components/routers/AdminRoute";
 import AdminOrStaffRoute from "./components/routers/AdminOrStaffRoute";
 import UserRoute from "./components/routers/UserRoute";
@@ -48,9 +49,38 @@ import PromotionsPage from "./pages/PromotionsPage";
 import PromotionsAdminPage from "./pages/admin/PromotionsAdminPage";
 import ReviewsModerationPage from "./pages/admin/ReviewsModerationPage";
 import CustomersPage from "./pages/admin/CustomersPage";
+import CategoriesPage from "./pages/admin/CategoriesPage";
+import OrdersPage from "./pages/admin/OrdersPage";
+import UsersStaffPage from "./pages/admin/UsersStaffPage";
 
 import News from "./pages/News";
 import NewsDetail from "./pages/NewsDetail";
+
+function AdminEntryRedirect() {
+  const user = useSelector((state) => state.user);
+  const roleId =
+    user?.role_id ??
+    JSON.parse(localStorage.getItem("user") || "null")?.role_id;
+
+  if (roleId === 3) {
+    return <Navigate to="/admin/subcategories" replace />;
+  }
+
+  return <Navigate to="/admin/dashboard" replace />;
+}
+
+function RootEntryRedirect() {
+  const user = useSelector((state) => state.user);
+  const roleId =
+    user?.role_id ??
+    JSON.parse(localStorage.getItem("user") || "null")?.role_id;
+
+  if (roleId === 1 || roleId === 3) {
+    return <Navigate to="/admin" replace />;
+  }
+
+  return <Home />;
+}
 
 function App() {
   const dispatch = useDispatch();
@@ -77,6 +107,7 @@ function App() {
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
         </Route>
+        <Route path="/403" element={<Forbidden />} />
 
         <Route element={<CustomerLayout />}>
           <Route element={<RequireAuth />}>
@@ -89,9 +120,9 @@ function App() {
           <Route
             path="/admin"
             element={
-              <AdminRoute>
-                <Navigate to="/admin/dashboard" replace />
-              </AdminRoute>
+              <AdminOrStaffRoute>
+                <AdminEntryRedirect />
+              </AdminOrStaffRoute>
             }
           />
           {/*Dashboard*/}
@@ -116,6 +147,14 @@ function App() {
             element={
               <AdminOrStaffRoute>
                 <SubCategory />
+              </AdminOrStaffRoute>
+            }
+          />
+          <Route
+            path="/admin/categories"
+            element={
+              <AdminOrStaffRoute>
+                <CategoriesPage />
               </AdminOrStaffRoute>
             }
           />
@@ -215,49 +254,49 @@ function App() {
           <Route
             path="/admin/campaigns"
             element={
-              <AdminOrStaffRoute>
+              <AdminRoute>
                 <Campaign />
-              </AdminOrStaffRoute>
+              </AdminRoute>
             }
           />
           <Route
             path="/admin/campaigns/add"
             element={
-              <AdminOrStaffRoute>
+              <AdminRoute>
                 <AddCampaign />
-              </AdminOrStaffRoute>
+              </AdminRoute>
             }
           />
           <Route
             path="/admin/campaigns/edit/:id"
             element={
-              <AdminOrStaffRoute>
+              <AdminRoute>
                 <EditCampaign />
-              </AdminOrStaffRoute>
+              </AdminRoute>
             }
           />
           <Route
             path="/admin/promotion-logs"
             element={
-              <AdminOrStaffRoute>
+              <AdminRoute>
                 <PromotionLogsPage />
-              </AdminOrStaffRoute>
+              </AdminRoute>
             }
           />
           <Route
             path="/admin/promotion-logs/send"
             element={
-              <AdminOrStaffRoute>
+              <AdminRoute>
                 <PromotionLogSendPage />
-              </AdminOrStaffRoute>
+              </AdminRoute>
             }
           />
           <Route
             path="/admin/promotions"
             element={
-              <AdminOrStaffRoute>
+              <AdminRoute>
                 <PromotionsAdminPage />
-              </AdminOrStaffRoute>
+              </AdminRoute>
             }
           />
           <Route
@@ -269,15 +308,35 @@ function App() {
             }
           />
           <Route
-            path="/admin/customers"
+            path="/admin/orders"
             element={
               <AdminOrStaffRoute>
-                <CustomersPage />
+                <OrdersPage />
               </AdminOrStaffRoute>
             }
           />
+          <Route
+            path="/admin/users"
+            element={
+              <AdminRoute>
+                <UsersStaffPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/user"
+            element={<Navigate to="/admin/users" replace />}
+          />
+          <Route
+            path="/admin/customers"
+            element={
+              <AdminRoute>
+                <CustomersPage />
+              </AdminRoute>
+            }
+          />
         </Route>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<RootEntryRedirect />} />
         <Route path="/search" element={<Search />} />
         <Route path="/promotions" element={<PromotionsPage />} />
         <Route path="/category/:categoryId" element={<CategoryPage />} />
@@ -297,7 +356,7 @@ function App() {
           path="/checkout"
           element={
             <UserRoute>
-            <Checkout />
+              <Checkout />
             </UserRoute>
           }
         />

@@ -1,7 +1,7 @@
 import axios from "axios";
 import axiosInstance from "./axiosInstance";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 const filterProducts = async (params) => {
   try {
@@ -12,7 +12,7 @@ const filterProducts = async (params) => {
     throw error;
   }
 };
-const getProducts = async (keyword = "") => {
+export const getProducts = async (keyword = "") => {
   try {
     const response = await axios.get(`${API_URL}/products`, {
       params: { keyword },
@@ -36,7 +36,7 @@ const getProductWithReviewSummary = async () => {
 };
 
 // Tạo một sản phẩm mới
-const createProduct = async (
+export const createProduct = async (
   productName,
   description,
   price,
@@ -77,7 +77,7 @@ const createProduct = async (
 };
 
 // Lấy sản phẩm theo ID
-const getProductById = async (id) => {
+export const getProductById = async (id) => {
   try {
     const response = await axios.get(`${API_URL}/products/${id}`);
     return response.data;
@@ -127,7 +127,7 @@ const getProductBySlug = async (slug) => {
 // };
 // Thay thế hàm updateProduct hiện tại bằng hàm nhận FormData
 
-const updateProduct = async (id, formData, accessToken) => {
+export const updateProduct = async (id, formData, accessToken) => {
   try {
     const safeToken = encodeURIComponent(accessToken);
     const response = await axiosInstance.put(
@@ -148,9 +148,15 @@ const updateProduct = async (id, formData, accessToken) => {
 };
 
 // Xóa sản phẩm
-const deleteProduct = async (id) => {
+export const deleteProduct = async (id, accessToken) => {
   try {
-    const response = await axiosInstance.delete(`${API_URL}/products/${id}`);
+    const response = await axiosInstance.delete(`${API_URL}/products/${id}`, {
+      headers: accessToken
+        ? {
+            Authorization: `Bearer ${accessToken}`,
+          }
+        : undefined,
+    });
     return response.data;
   } catch (error) {
     console.error("Error deleting product:", error);

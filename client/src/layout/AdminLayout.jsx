@@ -52,12 +52,12 @@ const adminTheme = {
   },
 };
 
-const getSelectedNavKey = (pathname) => {
-  const sorted = [...adminNavItems].sort((a, b) => b.key.length - a.key.length);
+const getSelectedNavKey = (pathname, navItems) => {
+  const sorted = [...navItems].sort((a, b) => b.key.length - a.key.length);
   const match = sorted.find(
     (item) => pathname === item.key || pathname.startsWith(`${item.key}/`),
   );
-  return match?.key || "/admin/dashboard";
+  return match?.key || navItems[0]?.key || "/admin/dashboard";
 };
 
 const AdminLayout = () => {
@@ -70,7 +70,24 @@ const AdminLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const selectedKey = getSelectedNavKey(location.pathname);
+  const filteredAdminNavItems = useMemo(() => {
+    if (!roles || roles.length === 0) {
+      return [];
+    }
+
+    return adminNavItems.filter((item) => {
+      if (!item.rolesAllowed || item.rolesAllowed.length === 0) {
+        return true;
+      }
+
+      return item.rolesAllowed.some((role) => roles.includes(role));
+    });
+  }, [roles]);
+
+  const selectedKey = getSelectedNavKey(
+    location.pathname,
+    filteredAdminNavItems,
+  );
 
   const roleTag = useMemo(() => {
     if (!roles || roles.length === 0) {
@@ -121,7 +138,7 @@ const AdminLayout = () => {
       mode="inline"
       theme="dark"
       selectedKeys={[selectedKey]}
-      items={adminNavItems}
+      items={filteredAdminNavItems}
       onClick={onMenuClick}
       style={{ height: "100%", borderInlineEnd: 0, padding: "16px 8px" }}
     />
@@ -136,22 +153,22 @@ const AdminLayout = () => {
             collapsed={collapsed}
             onCollapse={setCollapsed}
             width={280}
-            style={{ 
+            style={{
               borderRight: "1px solid rgba(255, 255, 255, 0.05)",
-              boxShadow: "4px 0 24px rgba(0,0,0,0.02)"
+              boxShadow: "4px 0 24px rgba(0,0,0,0.02)",
             }}
           >
             <div className="flex h-[72px] items-center justify-center border-b border-white/5 px-4 mb-2">
               <Title
                 level={4}
                 className="portal-title"
-                style={{ 
-                  margin: 0, 
-                  color: "#c48c46", 
+                style={{
+                  margin: 0,
+                  color: "#c48c46",
                   textAlign: "center",
                   letterSpacing: "0.5px",
                   fontWeight: 700,
-                  fontFamily: '"Playfair Display", serif'
+                  fontFamily: '"Playfair Display", serif',
                 }}
               >
                 {collapsed ? "A" : "Aurelia Admin"}
@@ -172,7 +189,7 @@ const AdminLayout = () => {
               display: "flex",
               alignItems: "center",
               boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.03)",
-              zIndex: 10
+              zIndex: 10,
             }}
           >
             <div className="flex w-full items-center justify-between gap-3 pt-1">
@@ -188,7 +205,12 @@ const AdminLayout = () => {
                   <Title
                     className="portal-title"
                     level={4}
-                    style={{ margin: 0, lineHeight: 1.1, fontFamily: '"Playfair Display", serif', color: "#1a1a2e" }}
+                    style={{
+                      margin: 0,
+                      lineHeight: 1.1,
+                      fontFamily: '"Playfair Display", serif',
+                      color: "#1a1a2e",
+                    }}
                   >
                     Oanh Ngoc Jewelry Admin
                   </Title>
@@ -201,18 +223,36 @@ const AdminLayout = () => {
               <Space size="large">
                 <Tag
                   color="#c48c46"
-                  style={{ textTransform: "uppercase", margin: 0, padding: "2px 8px", borderRadius: "6px", fontWeight: 600, border: "none" }}
+                  style={{
+                    textTransform: "uppercase",
+                    margin: 0,
+                    padding: "2px 8px",
+                    borderRadius: "6px",
+                    fontWeight: 600,
+                    border: "none",
+                  }}
                 >
                   {roleTag}
                 </Tag>
-                <Dropdown menu={{ items: userItems }} trigger={["click"]} placement="bottomRight">
-                  <Button 
-                    type="text" 
-                    style={{ height: "auto", padding: "4px 8px", borderRadius: "8px" }}
+                <Dropdown
+                  menu={{ items: userItems }}
+                  trigger={["click"]}
+                  placement="bottomRight"
+                >
+                  <Button
+                    type="text"
+                    style={{
+                      height: "auto",
+                      padding: "4px 8px",
+                      borderRadius: "8px",
+                    }}
                     className="hover:bg-gray-100 transition-colors cursor-pointer"
                   >
                     <Space>
-                      <Avatar size={34} style={{ backgroundColor: "#1a1a2e", color: "#c48c46" }}>
+                      <Avatar
+                        size={34}
+                        style={{ backgroundColor: "#1a1a2e", color: "#c48c46" }}
+                      >
                         {(user?.name || "A")[0].toUpperCase()}
                       </Avatar>
                       <span className="font-medium text-gray-700 hidden sm:inline-block pl-1">
@@ -225,13 +265,24 @@ const AdminLayout = () => {
             </div>
           </Header>
 
-          <Content style={{ overflowX: 'hidden' }}>
+          <Content style={{ overflowX: "hidden" }}>
             <Outlet />
           </Content>
         </Layout>
 
         <Drawer
-          title={<span style={{ fontFamily: '"Playfair Display", serif', color: '#1a1a2e', fontSize: '1.25rem', fontWeight: 700 }}>Aurelia Navigation</span>}
+          title={
+            <span
+              style={{
+                fontFamily: '"Playfair Display", serif',
+                color: "#1a1a2e",
+                fontSize: "1.25rem",
+                fontWeight: 700,
+              }}
+            >
+              Aurelia Navigation
+            </span>
+          }
           placement="left"
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
@@ -241,9 +292,9 @@ const AdminLayout = () => {
           <Menu
             mode="inline"
             selectedKeys={[selectedKey]}
-            items={adminNavItems}
+            items={filteredAdminNavItems}
             onClick={onMenuClick}
-            style={{ borderRight: 'none', padding: '16px 8px' }}
+            style={{ borderRight: "none", padding: "16px 8px" }}
           />
         </Drawer>
       </Layout>

@@ -1,174 +1,395 @@
-import { DataTable } from "primereact/datatable";
-import { Column } from "primereact/column";
-import React, { useEffect, useState } from "react";
-import SubCategoryAPI from "../../../api/subCategoryApi";
-import { Link, useNavigate } from "react-router-dom";
-import Swal from "sweetalert2";
-import { useSelector } from "react-redux";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Button,
+  Card,
+  Form,
+  Input,
+  Modal,
+  Select,
+  Space,
+  Statistic,
+  Table,
+  Tag,
+  message,
+} from "antd";
+import { FolderTree, Layers3, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import PageContainer from "@/components/common/PageContainer";
+import subCategoryApi from "@/api/subCategoryApi";
+import categoryApi from "@/api/categoryApi";
+
+const getAccessToken = () =>
+  localStorage.getItem("accessToken") ||
+  JSON.parse(localStorage.getItem("user") || "null")?.token;
 
 const SubCategory = () => {
-  const user = useSelector((state) => state.user);
-  const accessToken = user?.token;
-  const navigate = useNavigate();
-  const [subCategories, setSubCategories] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [keyword, setKeyword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [editingSubcategory, setEditingSubcategory] = useState(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
+  const [form] = Form.useForm();
 
-  const fetchSubCategories = async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      const data = await SubCategoryAPI.getSubCategories();
-      setSubCategories(data);
+      const [subcategoriesData, categoriesData] = await Promise.all([
+        subCategoryApi.getSubCategories(),
+        categoryApi.getCategories(),
+      ]);
+      setSubcategories(Array.isArray(subcategoriesData) ? subcategoriesData : []);
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
     } catch (error) {
-      console.error("Lỗi khi tải danh sách:", error);
-      Swal.fire("Lỗi", "Không thể tải danh sách nhóm sản phẩm.", "error");
+      message.error(
+        error.response?.data?.message || "Không thể tải dữ liệu danh mục con",
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    let active = true;
-
-    const loadInitialData = async () => {
-      try {
-        const data = await SubCategoryAPI.getSubCategories();
-        if (active) {
-          setSubCategories(data);
-        }
-      } catch (error) {
-        console.error("Lỗi khi tải danh sách:", error);
-        Swal.fire("Lỗi", "Không thể tải danh sách nhóm sản phẩm.", "error");
-      }
-    };
-
-    loadInitialData();
-
-    return () => {
-      active = false;
-    };
+    fetchData();
   }, []);
 
-  const handleDelete = async (id) => {
-    const result = await Swal.fire({
-      title: "Bạn chắc chắn muốn dừng bán?",
-      text: "Danh mục con sẽ được giữ lại, chỉ dừng bán sản phẩm liên quan.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "OK",
-      cancelButtonText: "HỦY",
+  const categoryOptions = useMemo(
+    () =>
+      categories.map((category) => ({
+        label: category.category_name,
+        value: category.category_id,
+      })),
+    [categories],
+  );
+
+  const filteredSubcategories = useMemo(() => {
+    const normalizedKeyword = keyword.trim().toLowerCase();
+    return subcategories.filter((subcategory) => {
+      if (!normalizedKeyword) return true;
+      const parentName =
+        subcategory.Category?.category_name ||
+        categories.find(
+          (category) =>
+            Number(category.category_id) === Number(subcategory.category_id),
+        )?.category_name ||
+        "";
+
+      return (
+        String(subcategory.subcategory_name || "")
+          .toLowerCase()
+          .includes(normalizedKeyword) ||
+        String(subcategory.description || "")
+          .toLowerCase()
+          .includes(normalizedKeyword) ||
+        String(parentName).toLowerCase().includes(normalizedKeyword)
+      );
     });
+  }, [categories, keyword, subcategories]);
 
-    if (result.isConfirmed) {
-      try {
-        const response = await SubCategoryAPI.deleteSubCategory(
-          id,
-          accessToken,
-        );
-        await fetchSubCategories();
-        Swal.fire(
-          "Đã dừng bán!",
-          response?.message || "Đã dừng bán sản phẩm thuộc danh mục con.",
-          "success",
-        );
-      } catch (error) {
-        console.error("Lỗi khi dừng bán danh mục:", error);
-        const status = error?.response?.status;
-        if (status === 401 || status === 403) {
-          Swal.fire(
-            "Phiên đăng nhập hết hạn",
-            "Vui lòng đăng nhập lại để tiếp tục.",
-            "warning",
-          );
-          navigate("/signin");
-          return;
-        }
-        Swal.fire("Lỗi", "Đã xảy ra lỗi khi dừng bán danh mục!", "error");
-      }
-    }
-  };
+  const stats = useMemo(() => {
+    const categorySet = new Set(
+      filteredSubcategories.map((subcategory) => Number(subcategory.category_id)),
+    );
+    const activeCount = filteredSubcategories.filter(
+      (subcategory) => !subcategory.is_stopped_selling,
+    ).length;
 
-  const statusTemplate = (rowData) => {
-    const isStopped = Boolean(rowData.is_stopped_selling);
+    return {
+      total: filteredSubcategories.length,
+      categories: categorySet.size,
+      active: activeCount,
+    };
+  }, [filteredSubcategories]);
+
+  const getCategoryName = (subcategory) => {
     return (
-      <span
-        className={`px-2 py-1 rounded text-xs font-semibold ${
-          isStopped
-            ? "bg-gray-200 text-gray-800"
-            : "bg-green-100 text-green-700"
-        }`}
-      >
-        {isStopped ? "Dừng bán" : "Đang bán"}
-      </span>
+      subcategory.Category?.category_name ||
+      categories.find(
+        (category) => Number(category.category_id) === Number(subcategory.category_id),
+      )?.category_name ||
+      "Không xác định"
     );
   };
 
-  return (
-    <div className="bg-[#FFFFFF] p-4 rounded-lg shadow-md">
-      {/* Tiêu đề */}
-      <div className="flex flex-row justify-between items-center mb-4">
-        <h1 className="text-[32px] font-bold">SubCategory List</h1>
+  const openCreateModal = () => {
+    setEditingSubcategory(null);
+    form.resetFields();
+    form.setFieldsValue({
+      subcategory_name: "",
+      description: "",
+      category_id: undefined,
+    });
+    setModalOpen(true);
+  };
+
+  const openEditModal = (subcategory) => {
+    setEditingSubcategory(subcategory);
+    form.setFieldsValue({
+      subcategory_name: subcategory.subcategory_name || "",
+      description: subcategory.description || "",
+      category_id: subcategory.category_id || undefined,
+    });
+    setModalOpen(true);
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      setSaving(true);
+      const accessToken = getAccessToken();
+
+      if (editingSubcategory) {
+        await subCategoryApi.updateSubCategory(
+          editingSubcategory.subcategory_id,
+          {
+            subcategory_name: values.subcategory_name.trim(),
+            description: values.description.trim(),
+            category_id: Number(values.category_id),
+          },
+          accessToken,
+        );
+        message.success("Cập nhật danh mục con thành công");
+      } else {
+        await subCategoryApi.createSubCategory(
+          values.subcategory_name.trim(),
+          values.description.trim(),
+          Number(values.category_id),
+          accessToken,
+        );
+        message.success("Tạo danh mục con thành công");
+      }
+
+      setModalOpen(false);
+      setEditingSubcategory(null);
+      form.resetFields();
+      fetchData();
+    } catch (error) {
+      if (error?.errorFields) return;
+      message.error(
+        error.response?.data?.message || "Không thể lưu danh mục con",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openDeleteModal = (subcategory) => {
+    setSelectedSubcategory(subcategory);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!selectedSubcategory) return;
+
+    setDeleteLoading(true);
+    try {
+      const response = await subCategoryApi.deleteSubCategory(
+        selectedSubcategory.subcategory_id,
+        getAccessToken(),
+      );
+      message.success(response?.message || "Đã dừng bán danh mục con");
+      setDeleteModalOpen(false);
+      setSelectedSubcategory(null);
+      fetchData();
+    } catch (error) {
+      message.error(
+        error.response?.data?.message || "Không thể dừng bán danh mục con",
+      );
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const columns = [
+    {
+      title: "Danh mục con",
+      key: "subcategory_name",
+      sorter: (a, b) =>
+        String(a.subcategory_name || "").localeCompare(
+          String(b.subcategory_name || ""),
+        ),
+      render: (_, record) => (
         <div>
-          <Link to="/admin/subcategories/add">
-            <button className="bg-blue-500 text-white px-4 py-2 rounded">
-              Add New SubCategory
-            </button>
-          </Link>
+          <div className="font-semibold text-gray-800">
+            {record.subcategory_name}
+          </div>
+          <div className="text-xs text-gray-500">
+            ID: {record.subcategory_id}
+          </div>
         </div>
+      ),
+    },
+    {
+      title: "Danh mục cha",
+      key: "category",
+      render: (_, record) => getCategoryName(record),
+    },
+    {
+      title: "Mô tả",
+      dataIndex: "description",
+      key: "description",
+      render: (value) => value || "Chưa có mô tả",
+    },
+    {
+      title: "Trạng thái",
+      key: "status",
+      render: (_, record) => (
+        <Tag color={record.is_stopped_selling ? "default" : "green"}>
+          {record.is_stopped_selling ? "Dừng bán" : "Đang bán"}
+        </Tag>
+      ),
+    },
+    {
+      title: "Thao tác",
+      key: "action",
+      width: 180,
+      render: (_, record) => (
+        <Space>
+          <Button icon={<Pencil size={14} />} onClick={() => openEditModal(record)}>
+            Sửa
+          </Button>
+          <Button
+            danger
+            icon={<Trash2 size={14} />}
+            onClick={() => openDeleteModal(record)}
+          >
+            Dừng bán
+          </Button>
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <PageContainer
+      title="Quản lý danh mục con"
+      subtitle="Quản trị subcategory theo cùng giao diện với category trong admin."
+    >
+      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card>
+          <Statistic
+            title="Tổng danh mục con"
+            value={stats.total}
+            prefix={<Layers3 size={16} />}
+          />
+        </Card>
+        <Card>
+          <Statistic
+            title="Danh mục cha đang dùng"
+            value={stats.categories}
+            prefix={<FolderTree size={16} />}
+          />
+        </Card>
+        <Card>
+          <Statistic
+            title="Đang bán"
+            value={stats.active}
+            prefix={<Layers3 size={16} />}
+          />
+        </Card>
       </div>
 
-      <DataTable
-        value={subCategories}
-        paginator
-        rows={10}
-        showGridlines
-        paginatorTemplate="PrevPageLink PageLinks NextPageLink"
+      <Card>
+        <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <Input
+            className="max-w-xl"
+            placeholder="Tìm theo tên, mô tả hoặc danh mục cha..."
+            prefix={<Search size={16} />}
+            allowClear
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+          />
+          <Button type="primary" icon={<Plus size={14} />} onClick={openCreateModal}>
+            Thêm danh mục con
+          </Button>
+        </div>
+
+        <Table
+          rowKey="subcategory_id"
+          columns={columns}
+          dataSource={filteredSubcategories}
+          loading={loading}
+          pagination={{ pageSize: 10, showSizeChanger: true }}
+          scroll={{ x: 950 }}
+        />
+      </Card>
+
+      <Modal
+        title={editingSubcategory ? "Cập nhật danh mục con" : "Tạo danh mục con"}
+        open={modalOpen}
+        onOk={handleSubmit}
+        onCancel={() => {
+          if (!saving) {
+            setModalOpen(false);
+            setEditingSubcategory(null);
+            form.resetFields();
+          }
+        }}
+        okText={editingSubcategory ? "Lưu thay đổi" : "Tạo mới"}
+        cancelText="Hủy"
+        okButtonProps={{ loading: saving }}
       >
-        <Column
-          field="subcategory_id"
-          header="ID"
-          sortable
-          headerClassName="bg-[#d2d4d6]"
-        ></Column>
-        <Column
-          field="subcategory_name"
-          header="Tên Danh Mục Con"
-          sortable
-          headerClassName="bg-[#d2d4d6]"
-        ></Column>
-        <Column
-          field="description"
-          header="Mô Tả"
-          sortable
-          headerClassName="bg-[#d2d4d6]"
-        ></Column>
-        <Column
-          field="Category.category_name"
-          header="Danh Mục"
-          sortable
-          headerClassName="bg-[#d2d4d6]"
-        ></Column>
-        <Column
-          body={statusTemplate}
-          header="Trạng thái"
-          headerClassName="bg-[#d2d4d6]"
-        ></Column>
-        <Column
-          body={(rowData) => (
-            <div className="flex flex-row gap-2">
-              <Link to={`/admin/subcategories/edit/${rowData.subcategory_id}`}>
-                <button className="bg-green-500 text-white px-4 py-2 rounded">
-                  Edit
-                </button>
-              </Link>
-              <button
-                onClick={() => handleDelete(rowData.subcategory_id)}
-                className="bg-red-500 text-white px-4 py-2 rounded"
-              >
-                Dừng bán
-              </button>
-            </div>
-          )}
-          header="Actions"
-          headerClassName="bg-[#d2d4d6]"
-        ></Column>
-      </DataTable>
-    </div>
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="subcategory_name"
+            label="Tên danh mục con"
+            rules={[
+              { required: true, message: "Vui lòng nhập tên danh mục con" },
+              { min: 2, message: "Tên danh mục con phải có ít nhất 2 ký tự" },
+            ]}
+          >
+            <Input placeholder="Nhập tên danh mục con" />
+          </Form.Item>
+
+          <Form.Item
+            name="category_id"
+            label="Danh mục cha"
+            rules={[{ required: true, message: "Vui lòng chọn danh mục cha" }]}
+          >
+            <Select
+              options={categoryOptions}
+              placeholder="Chọn danh mục cha"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="description"
+            label="Mô tả"
+            rules={[{ required: true, message: "Vui lòng nhập mô tả" }]}
+          >
+            <Input.TextArea rows={4} placeholder="Nhập mô tả danh mục con" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="Dừng bán danh mục con"
+        open={deleteModalOpen}
+        onOk={handleDelete}
+        onCancel={() => {
+          if (!deleteLoading) {
+            setDeleteModalOpen(false);
+            setSelectedSubcategory(null);
+          }
+        }}
+        okText="Xác nhận"
+        cancelText="Hủy"
+        okButtonProps={{ danger: true, loading: deleteLoading }}
+      >
+        <Space direction="vertical">
+          <div>
+            Bạn có chắc muốn dừng bán danh mục con{" "}
+            <strong>{selectedSubcategory?.subcategory_name}</strong>?
+          </div>
+          <div className="text-sm text-gray-500">
+            Danh mục cha: {selectedSubcategory ? getCategoryName(selectedSubcategory) : ""}
+          </div>
+        </Space>
+      </Modal>
+    </PageContainer>
   );
 };
 

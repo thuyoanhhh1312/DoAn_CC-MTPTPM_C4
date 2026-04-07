@@ -10,11 +10,10 @@ import {
 
 const router = express.Router();
 
-// ✅ Staff & Admin có thể xem
-router.get("/", authenticateToken, getAllCampaigns);
-router.get("/:id", authenticateToken, getCampaignById);
+// ❌ Chỉ Admin được xem/tạo/sửa/xóa campaign
+router.get("/", authenticateToken, isAdmin, getAllCampaigns);
+router.get("/:id", authenticateToken, isAdmin, getCampaignById);
 
-// ❌ Chỉ Admin được tạo/sửa/xóa campaign
 router.post("/", authenticateToken, isAdmin, createCampaign);
 router.put("/:id", authenticateToken, isAdmin, updateCampaign);
 router.delete("/:id", authenticateToken, isAdmin, deleteCampaign);
