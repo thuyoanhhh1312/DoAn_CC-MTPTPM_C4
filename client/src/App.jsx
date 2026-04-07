@@ -44,6 +44,8 @@ import AddNewsCategory from "./pages/admin/NewsCategory/add";
 import EditNewsCategory from "./pages/admin/NewsCategory/edit";
 import PromotionLogsPage from "./pages/admin/PromotionLogsPage";
 import PromotionLogSendPage from "./pages/admin/PromotionLogSendPage";
+import PromotionsPage from "./pages/PromotionsPage";
+import PromotionsAdminPage from "./pages/admin/PromotionsAdminPage";
 import ReviewsModerationPage from "./pages/admin/ReviewsModerationPage";
 
 import News from "./pages/News";
@@ -250,6 +252,14 @@ function App() {
             }
           />
           <Route
+            path="/admin/promotions"
+            element={
+              <AdminOrStaffRoute>
+                <PromotionsAdminPage />
+              </AdminOrStaffRoute>
+            }
+          />
+          <Route
             path="/admin/reviews"
             element={
               <AdminOrStaffRoute>
@@ -260,11 +270,10 @@ function App() {
         </Route>
         <Route path="/" element={<Home />} />
         <Route path="/search" element={<Search />} />
+        <Route path="/promotions" element={<PromotionsPage />} />
         <Route path="/category/:categoryId" element={<CategoryPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/order-failed" element={<OrderFailed />} />
-        <Route path="/:slug" element={<ProductDetail />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
         <Route path="/news" element={<News />} />
         <Route path="/news/:slug" element={<NewsDetail />} />
         <Route
@@ -279,10 +288,12 @@ function App() {
           path="/checkout"
           element={
             <UserRoute>
-              <Checkout />
+            <Checkout />
             </UserRoute>
           }
         />
+        <Route path="/:slug" element={<ProductDetail />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
