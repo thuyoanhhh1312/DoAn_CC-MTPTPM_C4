@@ -5,7 +5,14 @@ import { Sequelize } from "sequelize";
 // ============ GET ALL PROMOTIONS ============
 export const getAllPromotions = async (req, res) => {
   try {
-    const { page = 1, limit = 10, segment_target, campaign_id, sort = "-created_at" } = req.query;
+    const {
+      page = 1,
+      limit = 10,
+      segment_target,
+      campaign_id,
+      search,
+      sort = "-created_at",
+    } = req.query;
 
     const pageNum = Math.max(1, parseInt(page) || 1);
     const limitNum = Math.max(1, Math.min(100, parseInt(limit) || 10));
@@ -15,8 +22,22 @@ export const getAllPromotions = async (req, res) => {
     if (segment_target && segment_target !== "null") {
       where.segment_target = segment_target;
     }
-    if (campaign_id) {
+    if (campaign_id && campaign_id !== "null") {
       where.campaign_id = parseInt(campaign_id);
+    }
+    if (search?.trim()) {
+      where[Sequelize.Op.or] = [
+        {
+          promotion_code: {
+            [Sequelize.Op.like]: `%${search.trim()}%`,
+          },
+        },
+        {
+          description: {
+            [Sequelize.Op.like]: `%${search.trim()}%`,
+          },
+        },
+      ];
     }
 
     // Parse sort parameter (e.g., "-created_at" = DESC, "discount" = ASC)

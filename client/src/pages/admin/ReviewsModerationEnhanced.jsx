@@ -40,7 +40,7 @@ const ReviewsModerationPageEnhanced = () => {
   });
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('DESC');
-  const [filterStatus, setFilterStatus] = useState('pending');
+  const [filterStatus, setFilterStatus] = useState(null);
   const [toxicScoreRange, setToxicScoreRange] = useState([0, 1]);
   const [filterSentiment, setFilterSentiment] = useState(null);
   const [filterRating, setFilterRating] = useState(null);
@@ -63,7 +63,7 @@ const ReviewsModerationPageEnhanced = () => {
     try {
       const sort = `${sortOrder === 'DESC' ? '-' : ''}${sortBy}`;
       const response = await productApi.getToxicReviewsPending(
-        filterStatus,
+        filterStatus ?? undefined,
         pagination.page,
         pagination.limit,
         sort
@@ -355,11 +355,15 @@ const ReviewsModerationPageEnhanced = () => {
   // ============ FILTERED REVIEWS ============
   const filteredReviews = useMemo(() => {
     return reviews.filter((review) => {
+      const toxicScore = Number(review.toxic_score ?? 0);
+      const sentiment = review.sentiment ?? 'UNC';
+      const rating = Number(review.rating ?? 0);
+
       const matchToxicScore =
-        review.toxic_score >= toxicScoreRange[0] &&
-        review.toxic_score <= toxicScoreRange[1];
-      const matchSentiment = !filterSentiment || review.sentiment === filterSentiment;
-      const matchRating = !filterRating || review.rating === filterRating;
+        toxicScore >= toxicScoreRange[0] &&
+        toxicScore <= toxicScoreRange[1];
+      const matchSentiment = !filterSentiment || sentiment === filterSentiment;
+      const matchRating = !filterRating || rating === filterRating;
       const matchSearch =
         !searchText ||
         review.customer_name?.toLowerCase().includes(searchText.toLowerCase()) ||

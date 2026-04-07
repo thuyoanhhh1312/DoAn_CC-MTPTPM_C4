@@ -25,7 +25,8 @@ const SEGMENT_OPTIONS = [
 
 const PromotionsAdminPage = () => {
   const navigate = useNavigate();
-  const { accessToken, user } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => ({ ...state }));
+  const accessToken = user?.token;
 
   // State management
   const [promotions, setPromotions] = useState([]);
@@ -49,7 +50,7 @@ const PromotionsAdminPage = () => {
 
   // Authorization check
   useEffect(() => {
-    if (!accessToken || (user?.role_id !== 1 && user?.role_id !== 3)) {
+    if (!accessToken || ![1, 3].includes(Number(user?.role_id))) {
       navigate('/');
       Swal.fire('Lỗi', 'Bạn không có quyền truy cập trang này', 'error');
     }

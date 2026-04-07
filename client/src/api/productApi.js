@@ -365,10 +365,15 @@ const getTopRatedProductsBySentiment = async () => {
 };
 
 // ✅ TOXIC REVIEW ADMIN ENDPOINTS
-const getToxicReviewsPending = async (status = "pending", page = 1, limit = 10, sort = "-created_at") => {
+const getToxicReviewsPending = async (status, page = 1, limit = 10, sort = "-created_at") => {
   try {
+    const params = { page, limit, sort };
+    if (status != null) {
+      params.status = status;
+    }
+
     const response = await axiosInstance.get(`${API_URL}/admin/toxic-reviews`, {
-      params: { status, page, limit, sort },
+      params,
     });
     return response.data;
   } catch (error) {

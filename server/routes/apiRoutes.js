@@ -341,7 +341,7 @@ router.get(
   "/admin/toxic-reviews",
   authenticateToken,
   isAdmin,
-  validateRequest(getToxicReviewsSchema),
+  validateRequest(getToxicReviewsSchema, "query"),
   toxicReviewController.getToxicReviews,
 );
 
@@ -502,7 +502,7 @@ router.get(
 // GET all promotions with pagination & filters
 router.get(
   "/promotions",
-  validateRequest(getAllPromotionsSchema),
+  validateRequest(getAllPromotionsSchema, "query"),
   promotionController.getAllPromotions
 );
 
@@ -516,7 +516,7 @@ router.get(
 // GET promotion by ID
 router.get(
   "/promotions/:id",
-  validateRequest(getPromotionByIdSchema),
+  validateRequest(getPromotionByIdSchema, "params"),
   promotionController.getPromotionById
 );
 
