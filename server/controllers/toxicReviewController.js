@@ -1,6 +1,38 @@
 import db from "../models/index.js";
 import { Sequelize } from "sequelize";
 import { ERROR_CODES } from "../utils/errorCodes.js";
+import {
+  getExistingProductReviewAttributes,
+  getProductReviewColumns,
+} from "../utils/productReviewSchema.js";
+
+const mapReviewWithRelations = (review) => {
+  const plainReview =
+    typeof review?.toJSON === "function" ? review.toJSON() : review;
+
+  return {
+    ...plainReview,
+    customer_name: plainReview?.Customer?.name || null,
+    customer_email: plainReview?.Customer?.email || null,
+    customer_phone: plainReview?.Customer?.phone || null,
+    product_name: plainReview?.Product?.product_name || null,
+    product_slug: plainReview?.Product?.slug || null,
+    product_price: plainReview?.Product?.price || null,
+  };
+};
+
+const resolveReviewStatus = (review, columns) => {
+  if (columns.has("admin_review_status") && review?.admin_review_status) {
+    return review.admin_review_status;
+  }
+  if (columns.has("needs_admin_review") && review?.needs_admin_review) {
+    return "pending";
+  }
+  if (columns.has("is_hidden")) {
+    return review?.is_hidden ? "rejected" : "approved";
+  }
+  return "pending";
+};
 
 /**
  * ✅ GET /admin/toxic-reviews
@@ -10,38 +42,51 @@ export const getToxicReviews = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, sort = "-created_at", status = "pending" } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
+    const columns = await getProductReviewColumns();
 
     // Build where clause
-    const where = {
-      admin_review_status: status || { [Sequelize.Op.in]: ["pending", "approved", "rejected"] },
-    };
+    const where = {};
+    if (columns.has("admin_review_status")) {
+      where.admin_review_status =
+        status || { [Sequelize.Op.in]: ["pending", "approved", "rejected"] };
+    } else if (columns.has("needs_admin_review") && status === "pending") {
+      where.needs_admin_review = true;
+    } else if (columns.has("is_hidden")) {
+      if (status === "approved") where.is_hidden = false;
+      if (status === "rejected") where.is_hidden = true;
+    }
 
     // Parse sort parameter
     const sortField = sort.startsWith("-") ? sort.substring(1) : sort;
     const sortOrder = sort.startsWith("-") ? "DESC" : "ASC";
 
+    const attributes = await getExistingProductReviewAttributes([
+      "review_id",
+      "product_id",
+      "customer_id",
+      "rating",
+      "content",
+      "sentiment",
+      "sentiment_confidence",
+      "is_toxic",
+      "toxic_score",
+      "toxic_categories",
+      "toxic_types",
+      "toxic_reason",
+      "toxic_confidence",
+      "admin_review_status",
+      "admin_review_note",
+      "reviewed_by",
+      "needs_admin_review",
+      "is_hidden",
+      "hidden_reason",
+      "created_at",
+      "updated_at",
+    ]);
+
     const { count, rows } = await db.ProductReview.findAndCountAll({
       where,
-      attributes: [
-        "review_id",
-        "product_id",
-        "customer_id",
-        "rating",
-        "content",
-        "sentiment",
-        "sentiment_confidence",
-        "is_toxic",
-        "toxic_score",
-        "toxic_categories",
-        "toxic_types",
-        "toxic_reason",
-        "toxic_confidence",
-        "admin_review_status",
-        "admin_review_note",
-        "reviewed_by",
-        "created_at",
-        "updated_at",
-      ],
+      attributes,
       include: [
         {
           model: db.Customer,
@@ -49,7 +94,7 @@ export const getToxicReviews = async (req, res, next) => {
         },
         {
           model: db.Product,
-          attributes: ["product_id", "title", "slug"],
+          attributes: ["product_id", "product_name", "slug"],
         },
       ],
       order: [[sortField, sortOrder]],
@@ -61,7 +106,13 @@ export const getToxicReviews = async (req, res, next) => {
       code: "SUCCESS",
       message: "Lấy danh sách reviews cần duyệt thành công",
       data: {
-        reviews: rows,
+        reviews: rows.map((review) => ({
+          ...mapReviewWithRelations(review),
+          admin_review_status: resolveReviewStatus(
+            mapReviewWithRelations(review),
+            columns,
+          ),
+        })),
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -118,7 +169,7 @@ export const getToxicReviewDetail = async (req, res, next) => {
         },
         {
           model: db.Product,
-          attributes: ["product_id", "title", "slug", "price"],
+          attributes: ["product_id", "product_name", "slug", "price"],
         },
       ],
     });
@@ -134,7 +185,7 @@ export const getToxicReviewDetail = async (req, res, next) => {
     return res.status(200).json({
       code: "SUCCESS",
       message: "Lấy chi tiết review thành công",
-      data: { review },
+      data: { review: mapReviewWithRelations(review) },
     });
   } catch (error) {
     return next({
@@ -469,7 +520,7 @@ export const getHighestScoringToxicReviews = async (req, res, next) => {
         },
         {
           model: db.Product,
-          attributes: ["product_id", "title", "slug"],
+          attributes: ["product_id", "product_name", "slug"],
         },
       ],
       order: [["toxic_score", "DESC"]],
@@ -481,7 +532,7 @@ export const getHighestScoringToxicReviews = async (req, res, next) => {
       code: "SUCCESS",
       message: "Lấy danh sách toxic reviews có điểm cao nhất thành công",
       data: {
-        reviews: rows,
+        reviews: rows.map(mapReviewWithRelations),
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),

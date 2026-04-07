@@ -66,6 +66,7 @@ export const getPromotionByIdSchema = Joi.object({
 export const getAllPromotionsSchema = Joi.object({
   page: Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).default(10),
+  search: Joi.string().allow("", null),
   segment_target: Joi.string().allow(null),
   campaign_id: Joi.number().integer().allow(null),
   sort: Joi.string().default("-created_at"),

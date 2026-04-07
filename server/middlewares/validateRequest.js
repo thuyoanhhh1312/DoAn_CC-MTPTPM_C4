@@ -1,8 +1,10 @@
 import { ERROR_CODES } from "../utils/errorCodes.js";
 
-export const validateRequest = (schema) => {
+export const validateRequest = (schema, source = "body") => {
   return (req, res, next) => {
-    const { error, value } = schema.validate(req.body, {
+    const payload = req[source] ?? {};
+
+    const { error, value } = schema.validate(payload, {
       abortEarly: false,
       stripUnknown: true,
     });
@@ -16,7 +18,14 @@ export const validateRequest = (schema) => {
       });
     }
 
-    req.body = value;
+    if (source === "body") {
+      req.body = value;
+    } else {
+      Object.keys(req[source] ?? {}).forEach((key) => {
+        delete req[source][key];
+      });
+      Object.assign(req[source], value);
+    }
     next();
   };
 };

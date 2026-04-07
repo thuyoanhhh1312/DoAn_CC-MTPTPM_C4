@@ -13,6 +13,13 @@ const axiosInstance = axios.create({
 // Request interceptor: xóa Content-Type khi gửi FormData
 axiosInstance.interceptors.request.use(
   (config) => {
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+
+    if (user?.token && !config.headers?.Authorization) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${user.token}`;
+    }
+
     if (config.data instanceof FormData) {
       delete config.headers["Content-Type"];
     }

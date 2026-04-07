@@ -7,7 +7,6 @@ import {
   GitBranch,
   History,
   House,
-  Landmark,
   LayoutDashboard,
   Megaphone,
   MessageSquareWarning,
@@ -90,11 +89,6 @@ export const adminNavItems = [
     key: "/admin/reviews",
     label: "Reviews Moderation",
     icon: <MessageSquareWarning {...iconProps} />,
-  },
-  {
-    key: "/admin/bank-accounts",
-    label: "Bank Accounts",
-    icon: <Landmark {...iconProps} />,
   },
   { key: "/admin/rank", label: "Rank", icon: <Award {...iconProps} /> },
 ];
