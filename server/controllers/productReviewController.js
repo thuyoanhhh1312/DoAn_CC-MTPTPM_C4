@@ -2,6 +2,10 @@ import db from "../models/index.js";
 import axios from "axios";
 import { Sequelize } from "sequelize";
 import { VALID_HIDE_REASON_VALUES } from "../config/reviewConstants.js";
+import {
+  getExistingProductReviewAttributes,
+  pickExistingProductReviewFields,
+} from "../utils/productReviewSchema.js";
 
 const getSuspiciousReviewInfo = (review) => {
   const useForStats = review.use_for_stats !== false;
@@ -50,6 +54,29 @@ const REVIEW_STATS_ATTRIBUTES = [
   "is_meta_review",
   "meta_confidence",
   "use_for_stats",
+  "created_at",
+  "updated_at",
+];
+
+const REVIEW_LOOKUP_ATTRIBUTES = [
+  "review_id",
+  "product_id",
+  "customer_id",
+  "rating",
+  "content",
+  "sentiment",
+  "sentiment_confidence",
+  "is_meta_review",
+  "meta_confidence",
+  "use_for_stats",
+  "is_suspicious",
+  "suspicious_reason",
+  "is_hidden",
+  "hidden_reason",
+  "needs_admin_review",
+  "admin_review_status",
+  "admin_review_note",
+  "reviewed_by",
   "created_at",
   "updated_at",
 ];
@@ -116,7 +143,11 @@ export const adminLabelSentiment = async (req, res, next) => {
       });
     }
 
-    const review = await db.ProductReview.findByPk(reviewId);
+    const review = await db.ProductReview.findByPk(reviewId, {
+      attributes: await getExistingProductReviewAttributes(
+        REVIEW_LOOKUP_ATTRIBUTES,
+      ),
+    });
     if (!review) {
       return next({
         statusCode: 404,
@@ -325,7 +356,7 @@ export const createReview = async (req, res, next) => {
     }
 
     // ================== TẠO REVIEW TRONG DB ==================
-    const newReview = await db.ProductReview.create({
+    const reviewPayload = await pickExistingProductReviewFields({
       product_id: productId,
       customer_id,
       rating,
@@ -357,6 +388,8 @@ export const createReview = async (req, res, next) => {
       created_at: new Date(),
       updated_at: new Date(),
     });
+
+    const newReview = await db.ProductReview.create(reviewPayload);
 
     return res.status(201).json({
       message: needsAdminReview

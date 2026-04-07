@@ -6,6 +6,7 @@ import multer from "multer";
 import upload from "../middlewares/upload.js";
 import { validateRequest } from "../middlewares/validateRequest.js";
 import { authenticateToken, isAdmin, isAdminOrStaff } from "../middlewares/auth.js";
+import { authorizeRoles, ROLE_IDS } from "../middlewares/rbac.js";
 
 // Controllers
 import * as authController from "../controllers/authController.js";
@@ -20,12 +21,14 @@ import * as toxicReviewController from "../controllers/toxicReviewController.js"
 import * as articleController from "../controllers/articleController.js";
 import * as articleCategoryController from "../controllers/articleCategoryController.js";
 import * as dashboardController from "../controllers/dashboardController.js";
+import * as roleController from "../controllers/roleController.js";
 import * as tagController from "../controllers/tagController.js";
 import * as promotionController from "../controllers/promotionController.js";
 
 // Route imports
 import campaignRoutes from "./campaignRoutes.js";
 import promotionLogRoutes from "./promotionLogRoutes.js";
+import rankRoutes from "./rankRoutes.js";
 
 // Validators
 import { registerSchema, loginSchema, updateProfileSchema } from "../validators/authValidator.js";
@@ -47,7 +50,7 @@ import {
 } from "../validators/promotionValidator.js";
 
 // Product controller functions
-const { getSimilarProducts, filterProducts, getProductsByCategory, getSimilarProductsWithPagination } = productController;
+const { filterProducts, getProductsByCategory, getSimilarProductsWithPagination } = productController;
 
 const router = express.Router();
 router.get("/tags", tagController.getAllTags);
@@ -545,5 +548,6 @@ router.delete(
 
 // Campaign routes
 router.use("/campaigns", campaignRoutes);
+router.use("/rank", authenticateToken, isAdmin, rankRoutes);
 router.use("/promotion-logs", authenticateToken, promotionLogRoutes);
 export default router;

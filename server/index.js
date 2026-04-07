@@ -2,13 +2,19 @@
 import express from "express";
 import cors from "cors";
 import bcrypt from "bcryptjs";
+import vnpayRouter from "./vnpay/payment.js";
+
 import fs from "fs";
 import path from "path";
 import apiRoutes from "./routes/apiRoutes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import db from "./models/index.js";
+import monthlyRankUpdateJob from "./jobs/monthlyRankUpdateJob.js";
 
 const app = express();
+
+// Start scheduled background jobs once when server boots.
+monthlyRankUpdateJob();
 
 const ensureAdminUser = async () => {
   if (process.env.NODE_ENV === "production") {
@@ -16,7 +22,6 @@ const ensureAdminUser = async () => {
   }
 
   try {
-    // Ensure Admin role exists
     const adminRole = await db.Role.findOne({ where: { name: "Admin" } });
     if (!adminRole) {
       await db.Role.create({
@@ -26,7 +31,6 @@ const ensureAdminUser = async () => {
       });
     }
 
-    // Check if admin user exists
     const existingAdmin = await db.User.findOne({
       where: { email: "admin@oanh.local" },
     });
@@ -39,11 +43,60 @@ const ensureAdminUser = async () => {
         password_hash,
         role_id: 1,
       });
-      console.log("✅ Admin user created: admin@oanh.local");
     }
   } catch (error) {
-    console.error("❌ Error creating admin user:", error.message);
+    console.error("Khong the tao tai khoan admin mac dinh:", error.message);
   }
+};
+
+const ensureDemoUsers = async () => {
+  if (process.env.NODE_ENV === "production") {
+    return;
+  }
+
+  const demoUsers = [
+    {
+      name: "Admin Operator",
+      email: "admin@jewel.local",
+      password: "Admin@123",
+      role_id: 1,
+    },
+    {
+      name: "Staff Operator",
+      email: "staff@jewel.local",
+      password: "Staff@123",
+      role_id: 3,
+    },
+    {
+      name: "Customer Demo",
+      email: "customer@jewel.local",
+      password: "Customer@123",
+      role_id: 2,
+    },
+  ];
+
+  for (const demoUser of demoUsers) {
+    const existingUser = await db.User.findOne({
+      where: { email: demoUser.email },
+    });
+
+    if (existingUser) {
+      continue;
+    }
+
+    const password_hash = await bcrypt.hash(demoUser.password, 12);
+    await db.User.create({
+      name: demoUser.name,
+      email: demoUser.email,
+      password_hash,
+      role_id: demoUser.role_id,
+    });
+  }
+};
+
+const ensureSeedUsers = async () => {
+  await ensureAdminUser();
+  await ensureDemoUsers();
 };
 
 //app.use(express.json());
@@ -90,6 +143,8 @@ app.use((req, res, next) => {
 // ⬇️ body parser để SAU CORS và TĂNG LIMIT
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+// Upload routes
+app.use("/api/payment", vnpayRouter);
 
 // Local upload static serving for CKEditor blog images
 const uploadsDir = path.join(process.cwd(), "uploads");
@@ -108,10 +163,9 @@ app.use(errorHandler);
 const port = process.env.PORT || 3001;
 app.listen(port, async () => {
   try {
-    // Create admin user
-    await ensureAdminUser();
+    await ensureSeedUsers();
   } catch (error) {
-    console.error("❌ Initialization error:", error.message);
+    console.error("Không thể khởi tạo tài khoản demo:", error.message);
   }
   console.log(`Server đang chạy trên http://localhost:${port}`);
   console.log(`Server cũng có thể truy cập qua http://127.0.0.1:${port}`);
