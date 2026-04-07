@@ -69,10 +69,6 @@ const getSelectedNavKey = (pathname) => {
     return "/news";
   }
 
-  if (pathname.startsWith("/gold-prices")) {
-    return "/gold-prices";
-  }
-
   return "/";
 };
 

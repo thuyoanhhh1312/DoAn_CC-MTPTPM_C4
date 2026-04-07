@@ -2,7 +2,6 @@ import React, { useEffect } from "react";
 
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import AdminLayout from "./layout/AdminLayout";
-import CustomerLayout from "./layout/CustomerLayout";
 import SubCategory from "./pages/admin/SubCategory/index";
 import AddSubCategory from "./pages/admin/SubCategory/add";
 import EditSubCategory from "./pages/admin/SubCategory/edit";
@@ -109,11 +108,9 @@ function App() {
         </Route>
         <Route path="/403" element={<Forbidden />} />
 
-        <Route element={<CustomerLayout />}>
-          <Route element={<RequireAuth />}>
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/order-history" element={<OrderHistoryPage />} />
-          </Route>
+        <Route element={<RequireAuth />}>
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/order-history" element={<OrderHistoryPage />} />
         </Route>
 
         <Route element={<AdminLayout />}>

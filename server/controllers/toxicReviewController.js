@@ -139,29 +139,41 @@ export const getToxicReviewDetail = async (req, res, next) => {
   try {
     const { reviewId } = req.params;
 
+    if (!Number.isInteger(Number(reviewId)) || Number(reviewId) <= 0) {
+      return next({
+        statusCode: 400,
+        code: ERROR_CODES.INVALID_REVIEW_ID || ERROR_CODES.VALIDATION_ERROR,
+        message: "reviewId không hợp lệ",
+      });
+    }
+
+    const columns = await getProductReviewColumns();
+    const attributes = await getExistingProductReviewAttributes([
+      "review_id",
+      "product_id",
+      "customer_id",
+      "rating",
+      "content",
+      "sentiment",
+      "sentiment_confidence",
+      "is_toxic",
+      "toxic_score",
+      "toxic_categories",
+      "toxic_types",
+      "toxic_reason",
+      "toxic_confidence",
+      "admin_review_status",
+      "admin_review_note",
+      "reviewed_by",
+      "needs_admin_review",
+      "is_hidden",
+      "hidden_reason",
+      "created_at",
+      "updated_at",
+    ]);
+
     const review = await db.ProductReview.findByPk(reviewId, {
-      attributes: [
-        "review_id",
-        "product_id",
-        "customer_id",
-        "rating",
-        "content",
-        "sentiment",
-        "sentiment_confidence",
-        "is_toxic",
-        "toxic_score",
-        "toxic_categories",
-        "toxic_types",
-        "toxic_reason",
-        "toxic_confidence",
-        "admin_review_status",
-        "admin_review_note",
-        "reviewed_by",
-        "is_hidden",
-        "hidden_reason",
-        "created_at",
-        "updated_at",
-      ],
+      attributes,
       include: [
         {
           model: db.Customer,
@@ -185,7 +197,15 @@ export const getToxicReviewDetail = async (req, res, next) => {
     return res.status(200).json({
       code: "SUCCESS",
       message: "Lấy chi tiết review thành công",
-      data: { review: mapReviewWithRelations(review) },
+      data: {
+        review: {
+          ...mapReviewWithRelations(review),
+          admin_review_status: resolveReviewStatus(
+            mapReviewWithRelations(review),
+            columns,
+          ),
+        },
+      },
     });
   } catch (error) {
     return next({

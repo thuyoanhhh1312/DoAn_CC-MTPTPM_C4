@@ -1,7 +1,6 @@
 import {
   Award,
   BadgePercent,
-  Coins,
   FolderOpen,
   Gem,
   GitBranch,
@@ -29,7 +28,6 @@ export const customerNavItems = [
     icon: <BadgePercent {...iconProps} />,
   },
   { key: "/news", label: "News", icon: <Newspaper {...iconProps} /> },
-  { key: "/gold-prices", label: "Gold Prices", icon: <Coins {...iconProps} /> },
 ];
 
 export const adminNavItems = [
