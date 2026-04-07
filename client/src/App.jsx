@@ -42,6 +42,9 @@ import PromotionLogsPage from "./pages/admin/PromotionLogsPage";
 import PromotionLogSendPage from "./pages/admin/PromotionLogSendPage";
 import ReviewsModerationPage from "./pages/admin/ReviewsModerationPage";
 
+import News from "./pages/News";
+import NewsDetail from "./pages/NewsDetail";
+
 function App() {
   const dispatch = useDispatch();
 
@@ -232,6 +235,8 @@ function App() {
         <Route path="/order-failed" element={<OrderFailed />} />
         <Route path="/:slug" element={<ProductDetail />} />
         <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/news" element={<News />} />
+        <Route path="/news/:slug" element={<NewsDetail />} />
         <Route
           path="/order-success"
           element={
