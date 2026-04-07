@@ -2,6 +2,8 @@
 import express from "express";
 import cors from "cors";
 import bcrypt from "bcryptjs";
+import vnpayRouter from "./vnpay/payment.js";
+
 import fs from "fs";
 import path from "path";
 import apiRoutes from "./routes/apiRoutes.js";
@@ -103,6 +105,8 @@ app.use((req, res, next) => {
 // ⬇️ body parser để SAU CORS và TĂNG LIMIT
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+// Upload routes
+app.use("/api/payment", vnpayRouter);
 
 // Local upload static serving for CKEditor blog images
 const uploadsDir = path.join(process.cwd(), "uploads");
