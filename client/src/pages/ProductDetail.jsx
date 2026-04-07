@@ -75,28 +75,32 @@ const ProductDetail = () => {
       const res = await productApi.getProductBySlug(slug);
       const productData = res?.product || null;
       setProduct(productData);
-      
+
       // Fetch similar products
       setLoadingSimilarProducts(true);
       setErrorSimilarProducts(null);
       try {
-        if (productData?.category_id) {
+        if (productData?.product_id) {
           const similarRes = await productApi.getSimilarProducts(
-            productData.category_id,
-            productData.subcategory_id,
+            productData.product_id,
           );
-          setSimilarProducts(Array.isArray(similarRes) ? similarRes : []);
+          const similarItems =
+            similarRes?.data?.items ||
+            (Array.isArray(similarRes) ? similarRes : []);
+          setSimilarProducts(Array.isArray(similarItems) ? similarItems : []);
         } else {
           setSimilarProducts([]);
         }
       } catch (error) {
         console.error("Lỗi khi lấy sản phẩm tương tự:", error);
-        setErrorSimilarProducts(error.message || "Lỗi khi tải sản phẩm tương tự");
+        setErrorSimilarProducts(
+          error.message || "Lỗi khi tải sản phẩm tương tự",
+        );
         setSimilarProducts([]);
       } finally {
         setLoadingSimilarProducts(false);
       }
-      
+
       setIsDescriptionVisible(true);
     } catch (error) {
       console.error("Lỗi khi lấy chi tiết sản phẩm:", error);
@@ -839,47 +843,48 @@ const ProductDetail = () => {
         </section>
 
         {/* Similar Products Section */}
-        {!errorSimilarProducts && (similarProducts.length > 0 || loadingSimilarProducts) && (
-          <section className="py-12 px-4 sm:px-8 bg-white rounded-2xl">
-            <div className="max-w-[1280px] mx-auto">
-              {/* Section Title */}
-              <div className="mb-8">
-                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-                  Sản phẩm tương tự
-                </h2>
-                <p className="text-gray-500 text-sm sm:text-base">
-                  Khám phá những sản phẩm khác trong cùng danh mục
-                </p>
-              </div>
-
-              {/* Similar Products Grid */}
-              {loadingSimilarProducts ? (
-                <div className="flex items-center justify-center py-12">
-                  <Spin size="large" tip="Đang tải sản phẩm tương tự..." />
+        {!errorSimilarProducts &&
+          (similarProducts.length > 0 || loadingSimilarProducts) && (
+            <section className="py-12 px-4 sm:px-8 bg-white rounded-2xl">
+              <div className="max-w-[1280px] mx-auto">
+                {/* Section Title */}
+                <div className="mb-8">
+                  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                    Sản phẩm tương tự
+                  </h2>
+                  <p className="text-gray-500 text-sm sm:text-base">
+                    Khám phá những sản phẩm khác trong cùng danh mục
+                  </p>
                 </div>
-              ) : similarProducts.length === 0 ? (
-                <Empty
-                  description="Không có sản phẩm tương tự"
-                  style={{ marginY: '40px' }}
-                />
-              ) : (
-                <Row gutter={[24, 24]}>
-                  {similarProducts.map((product) => (
-                    <Col
-                      key={product.product_id}
-                      xs={{ span: 24 }}      // Mobile: 1 column
-                      sm={{ span: 12 }}      // Tablet: 2 columns
-                      md={{ span: 8 }}       // Laptop: 3 columns
-                      lg={{ span: 6 }}       // Desktop: 4 columns
-                    >
-                      <ProductCard product={product} />
-                    </Col>
-                  ))}
-                </Row>
-              )}
-            </div>
-          </section>
-        )}
+
+                {/* Similar Products Grid */}
+                {loadingSimilarProducts ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Spin size="large" tip="Đang tải sản phẩm tương tự..." />
+                  </div>
+                ) : similarProducts.length === 0 ? (
+                  <Empty
+                    description="Không có sản phẩm tương tự"
+                    style={{ marginY: "40px" }}
+                  />
+                ) : (
+                  <Row gutter={[24, 24]}>
+                    {similarProducts.map((product) => (
+                      <Col
+                        key={product.product_id}
+                        xs={{ span: 24 }} // Mobile: 1 column
+                        sm={{ span: 12 }} // Tablet: 2 columns
+                        md={{ span: 8 }} // Laptop: 3 columns
+                        lg={{ span: 6 }} // Desktop: 4 columns
+                      >
+                        <ProductCard product={product} />
+                      </Col>
+                    ))}
+                  </Row>
+                )}
+              </div>
+            </section>
+          )}
 
         {/* Viewed Products */}
         <ViewedProducts />

@@ -163,13 +163,11 @@ export const deleteProduct = async (id, accessToken) => {
     throw error; // Đảm bảo lỗi được ném ra để xử lý ở nơi gọi
   }
 };
-// lấy sản phẩm tương tự theo category_id
-
 // API call for similar products
-const getSimilarProducts = async (categoryId, subcategoryId) => {
+const getSimilarProducts = async (productId, limit = 10) => {
   try {
     const response = await axios.get(`${API_URL}/products/similar`, {
-      params: { category_id: categoryId, subcategory_id: subcategoryId },
+      params: { productId, limit },
     });
     return response.data;
   } catch (error) {
