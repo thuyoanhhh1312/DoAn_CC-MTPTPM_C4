@@ -1,32 +1,30 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
-import LoadingToRedirect from "./LoadingToRedirect";
-import { currentAdmin } from "../../api/auth";
+import { Navigate } from "react-router-dom";
 
 const AdminRoute = ({ children }) => {
-    const { user } = useSelector((state) => ({ ...state }));
-    const [ok, setOk] = useState(false);
-    const navigate = useNavigate();
+  const { user } = useSelector((state) => ({ ...state }));
 
-    useEffect(() => {
-        if (user && user.token) {
-            currentAdmin(user.token)
-                .then((res) => {
-                    setOk(true);
-                })
-                .catch((err) => {
-                    setOk(false);
-                    navigate("/signin"); // Redirect if not admin
-                });
-        }
-    }, [user, navigate]);
+  let storedUser = null;
+  try {
+    storedUser = JSON.parse(localStorage.getItem("user") || "null");
+  } catch {
+    storedUser = null;
+  }
 
-    if (!ok) {
-        return <LoadingToRedirect />;
-    }
+  const currentUser = user?.token ? user : storedUser;
+  const accessToken = currentUser?.token;
+  const roleId = Number(currentUser?.role_id);
 
-    return children; // Render children (the protected route components) if user is admin
+  if (!accessToken) {
+    return <Navigate to="/signin" replace />;
+  }
+
+  if (roleId !== 1) {
+    return <Navigate to="/403" replace />;
+  }
+
+  return children;
 };
 
 export default AdminRoute;

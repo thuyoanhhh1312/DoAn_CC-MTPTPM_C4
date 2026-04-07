@@ -19,7 +19,10 @@ import { Calendar, Filter, CalendarDays } from "lucide-react";
 
 const DashboardOrderCount = ({ onSummaryChange }) => {
   const { user } = useSelector((state) => ({ ...state }));
-  const accessToken = user?.token || "";
+  const accessToken =
+    user?.token ||
+    JSON.parse(localStorage.getItem("user") || "null")?.token ||
+    "";
 
   const periodOptions = [
     { label: "Ngày (7 ngày gần nhất)", value: "day" },
@@ -108,7 +111,7 @@ const DashboardOrderCount = ({ onSummaryChange }) => {
 
   useEffect(() => {
     fetchOrderCount(period, startDate, endDate);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period, startDate, endDate]);
 
   const formatNumber = (num) => num.toLocaleString();
@@ -119,7 +122,9 @@ const DashboardOrderCount = ({ onSummaryChange }) => {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h2 className="text-xl font-bold text-[#1a1a2e]">Thống kê Đơn hàng</h2>
+          <h2 className="text-xl font-bold text-[#1a1a2e]">
+            Thống kê Đơn hàng
+          </h2>
           <p className="text-sm text-gray-500 mt-1">
             Biểu đồ số lượng đơn hàng bán ra theo thời gian
           </p>
@@ -134,7 +139,9 @@ const DashboardOrderCount = ({ onSummaryChange }) => {
               className="bg-transparent border-none text-sm font-medium text-[#1a1a2e] focus:ring-0 cursor-pointer outline-none pl-1"
             >
               {periodOptions.map(({ label, value }) => (
-                <option key={value} value={value}>{label}</option>
+                <option key={value} value={value}>
+                  {label}
+                </option>
               ))}
             </select>
           </div>
@@ -150,10 +157,12 @@ const DashboardOrderCount = ({ onSummaryChange }) => {
               title="Ngày bắt đầu"
             />
           </div>
-          
+
           <span className="text-gray-400">-</span>
 
-          <div className={`flex items-center gap-2 bg-[#faf7f2] px-3 py-2 rounded-xl border transition-colors ${errorDate ? 'border-red-400 bg-red-50' : 'border-[#e8e4de]'}`}>
+          <div
+            className={`flex items-center gap-2 bg-[#faf7f2] px-3 py-2 rounded-xl border transition-colors ${errorDate ? "border-red-400 bg-red-50" : "border-[#e8e4de]"}`}
+          >
             <CalendarDays className="text-[#c48c46]" size={18} />
             <input
               type="date"
@@ -173,7 +182,9 @@ const DashboardOrderCount = ({ onSummaryChange }) => {
           <div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-sm z-10 rounded-xl">
             <div className="flex flex-col items-center">
               <div className="w-8 h-8 border-4 border-[#e8e4de] border-t-[#c48c46] rounded-full animate-spin mb-3"></div>
-              <p className="text-gray-500 font-medium">Đang tải cấu trúc dữ liệu...</p>
+              <p className="text-gray-500 font-medium">
+                Đang tải cấu trúc dữ liệu...
+              </p>
             </div>
           </div>
         ) : null}
@@ -184,7 +195,9 @@ const DashboardOrderCount = ({ onSummaryChange }) => {
           </div>
         ) : data.length === 0 && !loading ? (
           <div className="flex items-center justify-center h-[400px] border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
-            <p className="text-gray-400 font-medium">Chưa có dữ liệu cho khoảng thời gian này</p>
+            <p className="text-gray-400 font-medium">
+              Chưa có dữ liệu cho khoảng thời gian này
+            </p>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={400}>
@@ -192,30 +205,38 @@ const DashboardOrderCount = ({ onSummaryChange }) => {
               data={data}
               margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
             >
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-              <XAxis 
-                dataKey="period" 
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="#E5E7EB"
+              />
+              <XAxis
+                dataKey="period"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#6B7280', fontSize: 13 }}
+                tick={{ fill: "#6B7280", fontSize: 13 }}
                 dy={10}
               />
-              <YAxis 
-                tickFormatter={formatNumber} 
-                width={80} 
+              <YAxis
+                tickFormatter={formatNumber}
+                width={80}
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#6B7280', fontSize: 13 }}
+                tick={{ fill: "#6B7280", fontSize: 13 }}
               />
-              <Tooltip 
+              <Tooltip
                 formatter={(value) => [formatNumber(value), "Số đơn hàng"]}
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
-                cursor={{ fill: '#f5f6f7' }}
+                contentStyle={{
+                  borderRadius: "12px",
+                  border: "none",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                }}
+                cursor={{ fill: "#f5f6f7" }}
               />
-              <Bar 
-                dataKey="count" 
-                fill="#c48c46" 
-                radius={[4, 4, 0, 0]} 
+              <Bar
+                dataKey="count"
+                fill="#c48c46"
+                radius={[4, 4, 0, 0]}
                 barSize={50}
               />
             </BarChart>

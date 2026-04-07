@@ -4,12 +4,12 @@ import {
   sendPromotionManually,
   deletePromotionLogs,
 } from "../controllers/promotionLogController.js";
-import { isAdmin, isAdminOrStaff } from "../middlewares/auth.js";
+import { isAdmin } from "../middlewares/auth.js";
 
 const router = express.Router();
 
-router.get("/", isAdminOrStaff, getAllPromotionLogs);
-router.post("/send", isAdminOrStaff, sendPromotionManually);
+router.get("/", isAdmin, getAllPromotionLogs);
+router.post("/send", isAdmin, sendPromotionManually);
 router.delete("/", isAdmin, deletePromotionLogs);
 
 export default router;

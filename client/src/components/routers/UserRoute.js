@@ -1,32 +1,46 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
-import LoadingToRedirect from "./LoadingToRedirect";
+import { Navigate } from "react-router-dom";
 import { currentUser } from "../../api/auth";
 
 const UserRoute = ({ children }) => {
-    const { user } = useSelector((state) => ({ ...state }));
-    const [ok, setOk] = useState(false);
-    const navigate = useNavigate();
+  const { user } = useSelector((state) => ({ ...state }));
+  const [status, setStatus] = useState("checking");
+  const accessToken =
+    user?.token || JSON.parse(localStorage.getItem("user") || "null")?.token;
 
-    useEffect(() => {
-        if (user && user.token) {
-            currentUser(user.token)
-                .then((res) => {
-                    setOk(true);
-                })
-                .catch((err) => {
-                    setOk(false);
-                    navigate("/signin");
-                });
-        }
-    }, [user, navigate]);
-
-    if (!ok) {
-        return <LoadingToRedirect />;
+  useEffect(() => {
+    if (!accessToken) {
+      setStatus("unauthenticated");
+      return;
     }
 
-    return children;
+    currentUser(accessToken)
+      .then(() => {
+        setStatus("allowed");
+      })
+      .catch((err) => {
+        if (err?.response?.status === 403) {
+          setStatus("forbidden");
+          return;
+        }
+        setStatus("unauthenticated");
+      });
+  }, [accessToken]);
+
+  if (status === "checking") {
+    return null;
+  }
+
+  if (status === "forbidden") {
+    return <Navigate to="/403" replace />;
+  }
+
+  if (status !== "allowed") {
+    return <Navigate to="/signin" replace />;
+  }
+
+  return children;
 };
 
 export default UserRoute;

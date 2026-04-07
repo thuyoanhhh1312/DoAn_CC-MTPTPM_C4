@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { Op } from "sequelize";
 import db from "../models/index.js";
 import { ERROR_CODES } from "../utils/errorCodes.js";
 import { sendPasswordResetOtpEmail } from "../services/emailService.js";
@@ -384,6 +385,147 @@ export const currentStaffOrAdmin = async (req, res, next) => {
       statusCode: 500,
       code: ERROR_CODES.INTERNAL_SERVER_ERROR,
       message: "Không xác định được quyền truy cập.",
+    });
+  }
+};
+
+export const getAdminStaffUsers = async (req, res, next) => {
+  const { keyword = "", role, status } = req.query;
+  const normalizedKeyword = String(keyword || "").trim();
+  const normalizedKeywordLower = normalizedKeyword.toLowerCase();
+  const normalizedRole = String(role || "").trim().toLowerCase();
+  const normalizedStatus = String(status || "").trim().toLowerCase();
+
+  try {
+    const users = await db.User.findAll({
+      where: {
+        role_id: {
+          [Op.in]: [1, 3],
+        },
+      },
+      include: [
+        {
+          model: db.Role,
+          attributes: ["id", "name"],
+          required: false,
+        },
+      ],
+      attributes: ["id", "name", "email", "role_id", "refresh_token", "createdAt"],
+      order: [["createdAt", "DESC"]],
+    });
+
+    const mappedUsers = users.map((user) => {
+      const roleName = user.role_id === 1 ? "admin" : "staff";
+      const accountStatus =
+        user.refresh_token === SUSPENDED_TOKEN_MARKER ? "inactive" : "active";
+
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role_id: user.role_id,
+        role: roleName,
+        status: accountStatus,
+        createdAt: user.createdAt,
+      };
+    });
+
+    const filteredUsers = mappedUsers.filter((user) => {
+      const matchesKeyword =
+        !normalizedKeyword ||
+        user.name?.toLowerCase().includes(normalizedKeywordLower) ||
+        user.email?.toLowerCase().includes(normalizedKeywordLower);
+      const matchesRole = !normalizedRole || user.role === normalizedRole;
+      const matchesStatus =
+        !normalizedStatus || user.status === normalizedStatus;
+
+      return matchesKeyword && matchesRole && matchesStatus;
+    });
+
+    return res.status(200).json(filteredUsers);
+  } catch (err) {
+    return next({
+      statusCode: 500,
+      code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+      message: "Khong the lay danh sach tai khoan admin va nhan vien.",
+      error: err.message,
+    });
+  }
+};
+
+export const updateAdminStaffUserRole = async (req, res, next) => {
+  const requesterId = req.user?.userId;
+  const targetUserId = Number(req.params.id);
+  const nextRoleId = Number(req.body?.role_id);
+
+  if (!requesterId || Number.isNaN(targetUserId) || Number.isNaN(nextRoleId)) {
+    return next({
+      statusCode: 400,
+      code: ERROR_CODES.VALIDATION_ERROR,
+      message: "Du lieu cap nhat vai tro khong hop le.",
+    });
+  }
+
+  if (![1, 3].includes(nextRoleId)) {
+    return next({
+      statusCode: 400,
+      code: ERROR_CODES.VALIDATION_ERROR,
+      message: "Chi duoc cap nhat vai tro admin hoac staff.",
+    });
+  }
+
+  if (requesterId === targetUserId) {
+    return next({
+      statusCode: 403,
+      code: ERROR_CODES.UNAUTHORIZED,
+      message: "Khong duoc tu thay doi vai tro cua chinh minh.",
+    });
+  }
+
+  try {
+    const targetUser = await db.User.findByPk(targetUserId, {
+      attributes: ["id", "name", "email", "role_id", "refresh_token"],
+    });
+
+    if (!targetUser) {
+      return next({
+        statusCode: 404,
+        code: ERROR_CODES.USER_NOT_FOUND,
+        message: "Tai khoan can cap nhat khong ton tai.",
+      });
+    }
+
+    if (![1, 3].includes(targetUser.role_id)) {
+      return next({
+        statusCode: 400,
+        code: ERROR_CODES.VALIDATION_ERROR,
+        message: "Chi ho tro cap nhat vai tro cho tai khoan admin va staff.",
+      });
+    }
+
+    targetUser.role_id = nextRoleId;
+    await targetUser.save();
+
+    return res.status(200).json({
+      message: "Cap nhat vai tro thanh cong.",
+      user: {
+        id: targetUser.id,
+        name: targetUser.name,
+        email: targetUser.email,
+        role_id: targetUser.role_id,
+        role: targetUser.role_id === 1 ? "admin" : "staff",
+        status:
+          targetUser.refresh_token === SUSPENDED_TOKEN_MARKER
+            ? "inactive"
+            : "active",
+      },
+    });
+  } catch (err) {
+    return next({
+      statusCode: 500,
+      code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+      message: "Khong the cap nhat vai tro tai khoan.",
+      error: err.message,
     });
   }
 };

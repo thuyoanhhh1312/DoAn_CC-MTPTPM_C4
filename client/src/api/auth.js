@@ -2,7 +2,7 @@ import axios from "axios";
 import axiosInstance from "./axiosInstance";
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3001/api",
 });
 
 // Đăng ký tài khoản

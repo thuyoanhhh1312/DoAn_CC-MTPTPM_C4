@@ -34,7 +34,7 @@ export default function SignInForm() {
       }
 
       if (user.role_id === 1 || user.role_id === 3) {
-        navigate("/admin/subcategories");
+        navigate("/admin");
         return;
       }
 
