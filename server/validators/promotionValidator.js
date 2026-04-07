@@ -69,4 +69,4 @@ export const getAllPromotionsSchema = Joi.object({
   segment_target: Joi.string().allow(null),
   campaign_id: Joi.number().integer().allow(null),
   sort: Joi.string().default("-created_at"),
-});
+}).unknown(true);

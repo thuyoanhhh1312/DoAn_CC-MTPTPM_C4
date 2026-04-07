@@ -1,4 +1,5 @@
 import db from "../models/index.js";
+const { Op } = db.Sequelize;
 
 const includeOrderRelations = [
   {
@@ -106,7 +107,14 @@ export const getOrderByCustomer = async (req, res) => {
     }
 
     const orders = await db.Order.findAll({
-      where: { customer_id: customer.id },
+      where: {
+        customer_id: customer.id,
+        [Op.or]: [
+          { payment_method: { [Op.ne]: "vnpay" } },
+          { status_id: { [Op.ne]: 1 } },
+          { transaction_id: { [Op.not]: null } },
+        ],
+      },
       include: includeOrderRelations,
       order: [["created_at", "DESC"]],
     });
@@ -123,7 +131,14 @@ export const getOrderByCustomer = async (req, res) => {
 export const getOrderByUserId = async (req, res) => {
   try {
     const orders = await db.Order.findAll({
-      where: { user_id: req.params.user_id },
+      where: {
+        user_id: req.params.user_id,
+        [Op.or]: [
+          { payment_method: { [Op.ne]: "vnpay" } },
+          { status_id: { [Op.ne]: 1 } },
+          { transaction_id: { [Op.not]: null } },
+        ],
+      },
       include: includeOrderRelations,
       order: [["created_at", "DESC"]],
     });
@@ -139,12 +154,8 @@ export const getOrderByUserId = async (req, res) => {
 
 export const updateIsDeposit = async (req, res) => {
   try {
-    const {
-      is_deposit,
-      deposit_status,
-      transaction_id,
-      payment_details,
-    } = req.body;
+    const { is_deposit, deposit_status, transaction_id, payment_details } =
+      req.body;
 
     const order = await db.Order.findByPk(req.params.id);
 
@@ -233,7 +244,9 @@ export const calculatePrice = async (req, res) => {
     let sub_total = 0;
 
     for (const item of items) {
-      const product = products.find((entry) => entry.product_id === item.product_id);
+      const product = products.find(
+        (entry) => entry.product_id === item.product_id,
+      );
 
       if (!product) {
         return res.status(400).json({
@@ -406,7 +419,9 @@ export const checkout = async (req, res) => {
 
     let sub_total = 0;
     for (const item of items) {
-      const product = products.find((entry) => entry.product_id === item.product_id);
+      const product = products.find(
+        (entry) => entry.product_id === item.product_id,
+      );
 
       if (!product) {
         await transaction.rollback();
@@ -538,20 +553,8 @@ export const checkout = async (req, res) => {
       { transaction },
     );
 
-    for (const item of items) {
-      await db.Product.update(
-        {
-          quantity: db.Sequelize.literal(`quantity - ${item.quantity}`),
-          sold_quantity: db.Sequelize.literal(
-            `sold_quantity + ${item.quantity}`,
-          ),
-        },
-        {
-          where: { product_id: item.product_id },
-          transaction,
-        },
-      );
-    }
+    // Luong VNPay: khong tru kho o buoc checkout.
+    // Kho chi duoc tru sau khi callback VNPay thanh cong.
 
     if (promotion_id) {
       await db.Promotion.update(

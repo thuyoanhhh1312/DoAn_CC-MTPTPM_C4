@@ -73,18 +73,22 @@ const ProductDetail = () => {
   const handleGetProduct = async () => {
     try {
       const res = await productApi.getProductBySlug(slug);
-      setProduct(res?.product);
+      const productData = res?.product || null;
+      setProduct(productData);
       
       // Fetch similar products
       setLoadingSimilarProducts(true);
       setErrorSimilarProducts(null);
       try {
-        const similarRes = await productApi.getSimilarProducts(
-          res.category_id,
-          res.subcategory_id,
-        );
-        // API returns an array of products or empty array
-        setSimilarProducts(Array.isArray(similarRes) ? similarRes : []);
+        if (productData?.category_id) {
+          const similarRes = await productApi.getSimilarProducts(
+            productData.category_id,
+            productData.subcategory_id,
+          );
+          setSimilarProducts(Array.isArray(similarRes) ? similarRes : []);
+        } else {
+          setSimilarProducts([]);
+        }
       } catch (error) {
         console.error("Lỗi khi lấy sản phẩm tương tự:", error);
         setErrorSimilarProducts(error.message || "Lỗi khi tải sản phẩm tương tự");

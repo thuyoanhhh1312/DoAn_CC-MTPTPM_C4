@@ -14,7 +14,6 @@ import Home from "./pages/Home.js";
 import ProductDetail from "./pages/ProductDetail";
 import CategoryPage from "./pages/CategoryPage";
 import CartPage from "./pages/CartPage";
-import CheckoutPage from "./pages/CheckoutPage";
 
 import Dashboard from "./pages/admin/Dashboard";
 import RankManagement from "./pages/admin/Rank";
@@ -26,11 +25,15 @@ import SignUp from "./pages/AuthPages/SignUp";
 import { useDispatch } from "react-redux";
 import AdminRoute from "./components/routers/AdminRoute";
 import AdminOrStaffRoute from "./components/routers/AdminOrStaffRoute";
+import UserRoute from "./components/routers/UserRoute";
 import RequireAuth from "./components/guards/RequireAuth";
 import RequireGuest from "./components/guards/RequireGuest";
 import Campaign from "./pages/admin/Campaign/index";
 import AddCampaign from "./pages/admin/Campaign/add";
 import EditCampaign from "./pages/admin/Campaign/edit";
+import Checkout from "./pages/checkout";
+import OrderSuccess from "./pages/OrderSuccess";
+import OrderFailed from "./pages/OrderFailed";
 
 import AdminNews from "./pages/admin/News/index";
 import AddNews from "./pages/admin/News/add";
@@ -43,6 +46,10 @@ import PromotionLogsPage from "./pages/admin/PromotionLogsPage";
 import PromotionLogSendPage from "./pages/admin/PromotionLogSendPage";
 import PromotionsPage from "./pages/PromotionsPage";
 import PromotionsAdminPage from "./pages/admin/PromotionsAdminPage";
+import ReviewsModerationPage from "./pages/admin/ReviewsModerationPage";
+
+import News from "./pages/News";
+import NewsDetail from "./pages/NewsDetail";
 
 function App() {
   const dispatch = useDispatch();
@@ -252,13 +259,39 @@ function App() {
               </AdminOrStaffRoute>
             }
           />
+          <Route
+            path="/admin/reviews"
+            element={
+              <AdminOrStaffRoute>
+                <ReviewsModerationPage />
+              </AdminOrStaffRoute>
+            }
+          />
         </Route>
         <Route path="/" element={<Home />} />
         <Route path="/search" element={<Search />} />
         <Route path="/promotions" element={<PromotionsPage />} />
         <Route path="/category/:categoryId" element={<CategoryPage />} />
         <Route path="/cart" element={<CartPage />} />
-        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/order-failed" element={<OrderFailed />} />
+        <Route path="/news" element={<News />} />
+        <Route path="/news/:slug" element={<NewsDetail />} />
+        <Route
+          path="/order-success"
+          element={
+            <UserRoute>
+              <OrderSuccess />
+            </UserRoute>
+          }
+        />
+        <Route
+          path="/checkout"
+          element={
+            <UserRoute>
+            <Checkout />
+            </UserRoute>
+          }
+        />
         <Route path="/:slug" element={<ProductDetail />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
