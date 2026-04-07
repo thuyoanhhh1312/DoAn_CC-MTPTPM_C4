@@ -47,6 +47,7 @@ import PromotionLogSendPage from "./pages/admin/PromotionLogSendPage";
 import PromotionsPage from "./pages/PromotionsPage";
 import PromotionsAdminPage from "./pages/admin/PromotionsAdminPage";
 import ReviewsModerationPage from "./pages/admin/ReviewsModerationPage";
+import CustomersPage from "./pages/admin/CustomersPage";
 
 import News from "./pages/News";
 import NewsDetail from "./pages/NewsDetail";
@@ -264,6 +265,14 @@ function App() {
             element={
               <AdminOrStaffRoute>
                 <ReviewsModerationPage />
+              </AdminOrStaffRoute>
+            }
+          />
+          <Route
+            path="/admin/customers"
+            element={
+              <AdminOrStaffRoute>
+                <CustomersPage />
               </AdminOrStaffRoute>
             }
           />
