@@ -6,9 +6,13 @@ import CustomerLayout from "./layout/CustomerLayout";
 import SubCategory from "./pages/admin/SubCategory/index";
 import AddSubCategory from "./pages/admin/SubCategory/add";
 import EditSubCategory from "./pages/admin/SubCategory/edit";
+import ProductList from "./pages/admin/Product/index";
+import AddProduct from "./pages/admin/Product/add";
+import EditProduct from "./pages/admin/Product/edit";
 import Search from "./pages/Search";
-import Home from "./pages/Home";
+import Home from "./pages/Home.js";
 import ProductDetail from "./pages/ProductDetail";
+import CategoryPage from "./pages/CategoryPage";
 import CartPage from "./pages/CartPage";
 
 import Dashboard from "./pages/admin/Dashboard";
@@ -128,6 +132,31 @@ function App() {
               </AdminOrStaffRoute>
             }
           />
+          {/* Products */}
+          <Route
+            path="/admin/products"
+            element={
+              <AdminOrStaffRoute>
+                <ProductList />
+              </AdminOrStaffRoute>
+            }
+          />
+          <Route
+            path="/admin/products/add"
+            element={
+              <AdminOrStaffRoute>
+                <AddProduct />
+              </AdminOrStaffRoute>
+            }
+          />
+          <Route
+            path="/admin/products/edit/:id"
+            element={
+              <AdminOrStaffRoute>
+                <EditProduct />
+              </AdminOrStaffRoute>
+            }
+          />
           {/* News */}
           <Route
             path="/admin/news"
@@ -231,6 +260,7 @@ function App() {
         </Route>
         <Route path="/" element={<Home />} />
         <Route path="/search" element={<Search />} />
+        <Route path="/category/:categoryId" element={<CategoryPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/order-failed" element={<OrderFailed />} />
         <Route path="/:slug" element={<ProductDetail />} />

@@ -324,6 +324,24 @@ const getProductsByCategory = async (categoryName) => {
   }
 };
 
+// Get products by category with pagination (new API)
+const getProductsByCategoryWithPagination = async (categoryId, page = 1, limit = 10) => {
+  try {
+    const response = await axios.get(`${API_URL}/product-by-category`, {
+      params: {
+        categoryId,
+        page,
+        limit,
+      },
+    });
+    // New API returns { code, data: { items, total, page, limit } }
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching products by category with pagination:", error);
+    throw error;
+  }
+};
+
 const getCategoriesWithSubCategories = async () => {
   try {
     const response = await axios.get(`${API_URL}/get-category-subcategory`); // API trả về danh sách category kèm theo SubCategories
@@ -346,6 +364,115 @@ const getTopRatedProductsBySentiment = async () => {
   }
 };
 
+// ✅ TOXIC REVIEW ADMIN ENDPOINTS
+const getToxicReviewsPending = async (status = "pending", page = 1, limit = 10, sort = "-created_at") => {
+  try {
+    const response = await axiosInstance.get(`${API_URL}/admin/toxic-reviews`, {
+      params: { status, page, limit, sort },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching toxic reviews:", error);
+    throw error;
+  }
+};
+
+const getToxicReviewDetail = async (reviewId) => {
+  try {
+    const response = await axiosInstance.get(`${API_URL}/admin/toxic-reviews/${reviewId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching toxic review detail:", error);
+    throw error;
+  }
+};
+
+const approveToxicReview = async (reviewId, note = "") => {
+  try {
+    const response = await axiosInstance.patch(`${API_URL}/admin/toxic-reviews/${reviewId}/approve`, {
+      note,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error approving toxic review:", error);
+    throw error;
+  }
+};
+
+const rejectToxicReview = async (reviewId, note = "") => {
+  try {
+    const response = await axiosInstance.patch(`${API_URL}/admin/toxic-reviews/${reviewId}/reject`, {
+      note,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error rejecting toxic review:", error);
+    throw error;
+  }
+};
+
+const bulkUpdateToxicReviews = async (reviewIds, action, note = "") => {
+  try {
+    const response = await axiosInstance.patch(`${API_URL}/admin/toxic-reviews/bulk-update`, {
+      review_ids: reviewIds,
+      action,
+      note,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error bulk updating toxic reviews:", error);
+    throw error;
+  }
+};
+
+const getToxicReviewStats = async () => {
+  try {
+    const response = await axiosInstance.get(`${API_URL}/admin/toxic-reviews/stats`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching toxic review stats:", error);
+    throw error;
+  }
+};
+
+const getHighestScoringToxicReviews = async (page = 1, limit = 10) => {
+  try {
+    const response = await axiosInstance.get(`${API_URL}/admin/toxic-reviews/highest-score`, {
+      params: { page, limit },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching highest scoring toxic reviews:", error);
+    throw error;
+  }
+};
+
+// ✅ SENTIMENT LABELING ENDPOINTS
+const adminLabelSentiment = async (reviewId, sentiment) => {
+  try {
+    const response = await axiosInstance.patch(`${API_URL}/admin/reviews/${reviewId}/label-sentiment`, {
+      sentiment,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error labeling sentiment:", error);
+    throw error;
+  }
+};
+
+const bulkLabelSentiment = async (reviewIds, sentiment) => {
+  try {
+    const response = await axiosInstance.patch(`${API_URL}/admin/reviews/bulk-label-sentiment`, {
+      review_ids: reviewIds,
+      sentiment,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error bulk labeling sentiment:", error);
+    throw error;
+  }
+};
+
 // Xuất các phương thức để sử dụng ở nơi khác
 export default {
   getProducts,
@@ -363,9 +490,21 @@ export default {
   searchProduct,
   getProductWithReviewSummary,
   getProductsByCategory,
+  getProductsByCategoryWithPagination,
   filterProducts,
   getCategoriesWithSubCategories,
   quickSearchProducts,
   getProductBySlug,
   getTopRatedProductsBySentiment,
+  // Toxic Review APIs
+  getToxicReviewsPending,
+  getToxicReviewDetail,
+  approveToxicReview,
+  rejectToxicReview,
+  bulkUpdateToxicReviews,
+  getToxicReviewStats,
+  getHighestScoringToxicReviews,
+  // Sentiment Labeling APIs
+  adminLabelSentiment,
+  bulkLabelSentiment,
 };

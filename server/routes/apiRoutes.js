@@ -3,59 +3,57 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 import multer from "multer";
-import {
-  getSimilarProducts,
-  filterProducts,
-} from "../controllers/productController.js";
 import upload from "../middlewares/upload.js";
 import { validateRequest } from "../middlewares/validateRequest.js";
-import * as articleController from "../controllers/articleController.js";
-import * as articleCategoryController from "../controllers/articleCategoryController.js";
-import {
-  createArticleSchema,
-  updateArticleSchema,
-} from "../validators/articleValidator.js";
-import {
-  calculatePriceSchema,
-  checkoutSchema,
-  updateDepositSchema,
-} from "../validators/orderValidator.js";
-
-const router = express.Router();
-
-// Middleware
-import {
-  isAdmin,
-  authenticateToken,
-  isAdminOrStaff,
-} from "../middlewares/auth.js";
+import { authenticateToken, isAdmin, isAdminOrStaff } from "../middlewares/auth.js";
 import { authorizeRoles, ROLE_IDS } from "../middlewares/rbac.js";
+
+// Controllers
 import * as authController from "../controllers/authController.js";
 import * as customerController from "../controllers/customerController.js";
 import * as productController from "../controllers/productController.js";
 import * as orderController from "../controllers/orderController.js";
 import * as searchController from "../controllers/searchController.js";
-
-import * as categoryController from "../controllers/categoryControllerCompat.js";
+import * as categoryController from "../controllers/categoryController.js";
 import * as subCategoryController from "../controllers/subCategoryController.js";
 import * as productReviewController from "../controllers/productReviewController.js";
-import campaignRoutes from "./campaignRoutes.js";
-import promotionLogRoutes from "./promotionLogRoutes.js";
+import * as toxicReviewController from "../controllers/toxicReviewController.js";
+import * as articleController from "../controllers/articleController.js";
+import * as articleCategoryController from "../controllers/articleCategoryController.js";
 import * as dashboardController from "../controllers/dashboardController.js";
 import * as roleController from "../controllers/roleController.js";
-
 import * as tagController from "../controllers/tagController.js";
+import * as promotionController from "../controllers/promotionController.js";
+
+// Route imports
+import campaignRoutes from "./campaignRoutes.js";
+import promotionLogRoutes from "./promotionLogRoutes.js";
 import rankRoutes from "./rankRoutes.js";
 
+// Validators
+import { registerSchema, loginSchema, updateProfileSchema } from "../validators/authValidator.js";
+import { createArticleSchema, updateArticleSchema } from "../validators/articleValidator.js";
+import { calculatePriceSchema, checkoutSchema, updateDepositSchema } from "../validators/orderValidator.js";
+import {
+  labelSentimentSchema,
+  bulkLabelSentimentSchema,
+  bulkUpdateToxicReviewSchema,
+  approveToxicReviewSchema,
+  rejectToxicReviewSchema,
+  getToxicReviewsSchema,
+} from "../validators/reviewValidator.js";
+import {
+  createPromotionSchema,
+  updatePromotionSchema,
+  getPromotionByIdSchema,
+  getAllPromotionsSchema,
+} from "../validators/promotionValidator.js";
+
+// Product controller functions
+const { filterProducts, getProductsByCategory, getSimilarProductsWithPagination } = productController;
+
+const router = express.Router();
 router.get("/tags", tagController.getAllTags);
-router.get(
-  "/roles",
-  authenticateToken,
-  authorizeRoles([ROLE_IDS.ADMIN, ROLE_IDS.STAFF, "admin", "staff"], {
-    message: "Ban khong co quyen xem danh sach vai tro.",
-  }),
-  roleController.getAllRoles,
-);
 
 const blogUploadDir = path.join(process.cwd(), "uploads", "blog");
 if (!fs.existsSync(blogUploadDir)) {
@@ -126,23 +124,31 @@ router.delete(
 router.put(
   "/customers/profile",
   authenticateToken,
-  customerController.updateCustomerProfile,
+  validateRequest(updateProfileSchema),
+  authController.updateProfile,
 );
+router.get("/customers/by-user/:userId", customerController.getCustomer);
 
 // Product routes
 router.get("/products", productController.getAllProducts);
-router.get(
-  "/products/with-review-summary",
-  productController.getAllProductsWithRatingSummary,
-);
-router.get(
-  "/product-by-category",
-  productController.getProductsByCategoryWithRatingSummary,
-);
-router.get("/products/similar", getSimilarProducts);
+router.get("/products/with-review-summary", productController.getAllProductsWithRatingSummary);
 router.get("/products/filter", filterProducts);
-router.get("/products/:id", productController.getProductById);
+router.get("/products/similar", getSimilarProductsWithPagination);
+router.get("/product-by-category", getProductsByCategory);
 router.get("/get-product-by-slug/:slug", productController.getProductBySlug);
+router.get("/get-product-top-rated-by-sentiment", productController.getTopRatedProductsBySentiment);
+router.get("/get-category-subcategory", productController.getCategoryesWithSubCategory);
+router.get("/products/:id", productController.getProductById);
+
+// Product image upload (Admin/Staff only) - Upload multiple images
+router.post(
+  "/uploads/product-images",
+  authenticateToken,
+  isAdminOrStaff,
+  upload.array("images", 10),
+  productController.uploadProductImages,
+);
+
 // ✅ Staff & Admin tạo/sửa product
 router.post(
   "/products",
@@ -164,14 +170,6 @@ router.delete(
   authenticateToken,
   isAdmin,
   productController.deleteProduct,
-);
-router.get(
-  "/get-category-subcategory",
-  productController.getCategoryesWithSubCategory,
-);
-router.get(
-  "/get-product-top-rated-by-sentiment",
-  productController.getTopRatedProductsBySentiment,
 );
 
 // Category routes
@@ -202,11 +200,9 @@ router.delete(
   isAdmin,
   categoryController.deleteCategory,
 );
-router.get("/customers/by-user/:userId", customerController.getCustomer);
 
 router.get("/auth/current-user", authenticateToken, authController.currentUser);
-router.get("/auth/me", authenticateToken, authController.currentUser);
-router.post("/auth/send-otp", authController.sendOtp);
+router.get("/auth/send-otp", authController.sendOtp);
 router.post("/auth/verify-otp", authController.verifyOtp);
 router.post("/auth/reset-password", authController.resetPassword);
 
@@ -340,6 +336,77 @@ router.post(
   productReviewController.createReview,
 );
 
+// ✅ ADMIN: Toxic Review Management
+router.get(
+  "/admin/toxic-reviews",
+  authenticateToken,
+  isAdmin,
+  validateRequest(getToxicReviewsSchema),
+  toxicReviewController.getToxicReviews,
+);
+
+router.get(
+  "/admin/toxic-reviews/stats",
+  authenticateToken,
+  isAdmin,
+  toxicReviewController.getToxicReviewStats,
+);
+
+router.get(
+  "/admin/toxic-reviews/highest-score",
+  authenticateToken,
+  isAdmin,
+  toxicReviewController.getHighestScoringToxicReviews,
+);
+
+router.get(
+  "/admin/toxic-reviews/:reviewId",
+  authenticateToken,
+  isAdmin,
+  toxicReviewController.getToxicReviewDetail,
+);
+
+router.patch(
+  "/admin/toxic-reviews/:reviewId/approve",
+  authenticateToken,
+  isAdmin,
+  validateRequest(approveToxicReviewSchema),
+  toxicReviewController.approveToxicReview,
+);
+
+router.patch(
+  "/admin/toxic-reviews/:reviewId/reject",
+  authenticateToken,
+  isAdmin,
+  validateRequest(rejectToxicReviewSchema),
+  toxicReviewController.rejectToxicReview,
+);
+
+router.patch(
+  "/admin/toxic-reviews/bulk-update",
+  authenticateToken,
+  isAdmin,
+  validateRequest(bulkUpdateToxicReviewSchema),
+  toxicReviewController.bulkUpdateToxicReviews,
+);
+
+// ✅ ADMIN/STAFF: Sentiment Labeling
+router.patch(
+  "/admin/reviews/:reviewId/label-sentiment",
+  authenticateToken,
+  isAdminOrStaff,
+  validateRequest(labelSentimentSchema),
+  productReviewController.adminLabelSentiment,
+);
+
+router.patch(
+  "/admin/reviews/bulk-label-sentiment",
+  authenticateToken,
+  isAdminOrStaff,
+  validateRequest(bulkLabelSentimentSchema),
+  productReviewController.bulkLabelSentiment,
+);
+
 // Public
 router.get("/news", articleController.getNews);
 router.get("/news/:slug", articleController.getNewsBySlug);
@@ -430,10 +497,57 @@ router.get(
   isAdmin,
   dashboardController.getOrderCountByPeriod,
 );
+
+// ============ PROMOTION ROUTES ============
+// GET all promotions with pagination & filters
+router.get(
+  "/promotions",
+  validateRequest(getAllPromotionsSchema),
+  promotionController.getAllPromotions
+);
+
+// GET promotions for current customer (public) - Must come BEFORE /:id
+router.get(
+  "/promotions/customer",
+  authenticateToken,
+  promotionController.getCustomerPromotions
+);
+
+// GET promotion by ID
+router.get(
+  "/promotions/:id",
+  validateRequest(getPromotionByIdSchema),
+  promotionController.getPromotionById
+);
+
+// POST create promotion (admin only)
+router.post(
+  "/promotions",
+  authenticateToken,
+  isAdmin,
+  validateRequest(createPromotionSchema),
+  promotionController.createPromotion
+);
+
+// PUT update promotion (admin only)
+router.put(
+  "/promotions/:id",
+  authenticateToken,
+  isAdmin,
+  validateRequest(updatePromotionSchema),
+  promotionController.updatePromotion
+);
+
+// DELETE promotion (admin only)
+router.delete(
+  "/promotions/:id",
+  authenticateToken,
+  isAdmin,
+  promotionController.deletePromotion
+);
+
 // Campaign routes
 router.use("/campaigns", campaignRoutes);
-// Rank routes
 router.use("/rank", authenticateToken, isAdmin, rankRoutes);
-
 router.use("/promotion-logs", authenticateToken, promotionLogRoutes);
 export default router;

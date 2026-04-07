@@ -519,3 +519,43 @@ export const resetPassword = async (req, res, next) => {
     });
   }
 };
+
+export const refresh = async (req, res, next) => {
+  try {
+    const { id, role_id } = req.user;
+    const result = await authService.refresh(id, role_id);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const me = async (req, res, next) => {
+  try {
+    const { id } = req.user;
+    const result = await authService.getMe(id);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const signout = async (req, res, next) => {
+  try {
+    const { id } = req.user;
+    const result = await authService.signout(id);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateProfile = async (req, res, next) => {
+  try {
+    const { id } = req.user;
+    const result = await authService.updateProfile(id, req.body);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};

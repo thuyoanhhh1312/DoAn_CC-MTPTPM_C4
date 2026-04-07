@@ -1,33 +1,106 @@
-import { Button, Card, Form, Input, Space, Tag, Typography } from "antd";
-import PageContainer from "@/components/common/PageContainer";
-import { useSelector } from "react-redux";
-import { extractUserRoles } from "@/utils/roles";
+import { useState, useEffect } from 'react';
+import { Button, Card, Form, Input, Space, Tag, Typography, message } from 'antd';
+import PageContainer from '@/components/common/PageContainer';
+import axiosInstance from '@/api/axiosInstance';
 
 const { Text } = Typography;
 
 const ProfilePage = () => {
-  const user = useSelector((state) => state.user);
-  const roles = extractUserRoles(user);
+  const [user, setUser] = useState(null);
+  const [roles, setRoles] = useState([]);
+  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+
+  // Fetch user data on component mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        if (token) {
+          const response = await axiosInstance.get('/auth/me', {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (response.data?.user) {
+            setUser(response.data.user);
+            // Extract roles from user data
+            if (response.data.user.roles) {
+              setRoles(response.data.user.roles);
+            }
+            // Set form initial values
+            form.setFieldsValue({
+              fullName: response.data.user.name || '',
+              email: response.data.user.email || '',
+            });
+          }
+        }
+      } catch (error) {
+        console.log('Failed to fetch user data:', error);
+      }
+    };
+    fetchUserData();
+  }, [form]);
+
+  const handleFinish = async (values) => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await axiosInstance.put('/customers/profile', {
+        fullName: values.fullName,
+        password: values.password || undefined,
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      
+      if (response) {
+        message.success('Profile updated successfully');
+        // Reset password fields after successful update
+        form.setFieldsValue({
+          password: '',
+          confirmPassword: '',
+        });
+      }
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <PageContainer title="Profile" subtitle="Protected customer profile route.">
+    <PageContainer title="Profile" subtitle="Update your profile information.">
       <Card>
         <Form
+          form={form}
           layout="vertical"
+          onFinish={handleFinish}
           initialValues={{
-            name: user?.name,
-            email: user?.email,
-            phone: "+84 900 000 000",
+            fullName: user?.name || '',
+            email: user?.email || '',
+            password: '',
+            confirmPassword: '',
           }}
         >
           <div className="grid grid-cols-4 gap-4 md:grid-cols-8 desktop:grid-cols-12">
             <Form.Item
               className="col-span-4 md:col-span-4 desktop:col-span-6"
-              name="name"
-              label="Full name"
-              rules={[{ required: true, message: "Name is required" }]}
+              name="fullName"
+              label="Full Name"
+              rules={[
+                {
+                  required: true,
+                  message: 'Full name is required',
+                },
+                {
+                  min: 2,
+                  message: 'Full name must be at least 2 characters',
+                },
+              ]}
             >
-              <Input />
+              <Input placeholder="Enter your full name" />
             </Form.Item>
 
             <Form.Item
@@ -35,32 +108,84 @@ const ProfilePage = () => {
               name="email"
               label="Email"
             >
-              <Input disabled />
+              <Input disabled placeholder="Email cannot be changed" />
             </Form.Item>
 
             <Form.Item
               className="col-span-4 md:col-span-4 desktop:col-span-6"
-              name="phone"
-              label="Phone"
+              name="password"
+              label="Password (optional)"
+              rules={[
+                () => ({
+                  validator(_, value) {
+                    if (!value) {
+                      return Promise.resolve();
+                    }
+                    if (value.length < 6) {
+                      return Promise.reject(
+                        new Error('Password must be at least 6 characters')
+                      );
+                    }
+                    return Promise.resolve();
+                  },
+                }),
+              ]}
             >
-              <Input />
+              <Input.Password placeholder="Leave blank to keep current password" />
+            </Form.Item>
+
+            <Form.Item
+              className="col-span-4 md:col-span-4 desktop:col-span-6"
+              name="confirmPassword"
+              label="Confirm Password"
+              rules={[
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    const password = getFieldValue('password');
+                    
+                    // If no password entered, confirmPassword is not required
+                    if (!password && !value) {
+                      return Promise.resolve();
+                    }
+                    
+                    // If password entered, confirmPassword is required
+                    if (password && !value) {
+                      return Promise.reject(
+                        new Error('Please confirm your password')
+                      );
+                    }
+                    
+                    // Passwords must match
+                    if (password !== value) {
+                      return Promise.reject(
+                        new Error('Passwords do not match')
+                      );
+                    }
+                    
+                    return Promise.resolve();
+                  },
+                }),
+              ]}
+            >
+              <Input.Password placeholder="Confirm your password" />
             </Form.Item>
 
             <div className="col-span-4 md:col-span-4 desktop:col-span-6 flex items-end">
               <Space>
-                {roles.map((role) => (
-                  <Tag key={role} color="blue">
-                    {role}
-                  </Tag>
-                ))}
-                <Text type="secondary">
-                  Role-aware UI can be extended from here.
-                </Text>
+                {roles &&
+                  roles.map((role) => (
+                    <Tag key={role} color="blue">
+                      {role}
+                    </Tag>
+                  ))}
+                <Text type="secondary">Role-aware UI can be extended from here.</Text>
               </Space>
             </div>
           </div>
 
-          <Button type="primary">Save profile</Button>
+          <Button type="primary" htmlType="submit" loading={loading}>
+            {loading ? 'Saving...' : 'Save Profile'}
+          </Button>
         </Form>
       </Card>
     </PageContainer>

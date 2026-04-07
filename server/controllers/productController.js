@@ -287,19 +287,35 @@ export const createProduct = async (req, res) => {
       subcategory_id,
     });
 
+    let createdImages = [];
     if (imageFiles && imageFiles.length > 0) {
-      const imagesToCreate = imageFiles.map((file, index) => ({
-        product_id: newProduct.product_id,
-        image_url: file.path,
-        alt_text: product_name,
-        is_main: index === 0,
-      }));
-      await db.ProductImage.bulkCreate(imagesToCreate);
+      const imagesToCreate = imageFiles.map((file, index) => {
+        // Handle both Cloudinary (returns full URL in path) and local storage
+        const imageUrl = file.path && file.path.startsWith('http')
+          ? file.path  // Cloudinary URL
+          : `/uploads/products/${file.filename || file.originalname}`; // Local storage
+
+        return {
+          product_id: newProduct.product_id,
+          image_url: imageUrl,
+          alt_text: product_name,
+          is_main: index === 0,
+        };
+      });
+      createdImages = await db.ProductImage.bulkCreate(imagesToCreate);
     }
 
-    res.status(201).json(newProduct);
+    const responseData = newProduct.toJSON();
+    responseData.ProductImages = createdImages;
+
+    res.status(201).json({
+      statusCode: 201,
+      message: "Tạo sản phẩm thành công",
+      data: responseData,
+    });
   } catch (error) {
     res.status(500).json({
+      statusCode: 500,
       message: "Lỗi khi tạo sản phẩm",
       error: error.message,
     });
@@ -410,24 +426,46 @@ export const updateProduct = async (req, res) => {
 
     // Thêm ảnh mới nếu có
     const imageFiles = req.files;
+    let newImages = [];
     if (imageFiles && imageFiles.length > 0) {
       // Xem có ảnh chính chưa, nếu không có thì ảnh đầu tiên mới upload sẽ là ảnh chính
       const hasMainImage = await db.ProductImage.findOne({
         where: { product_id: id, is_main: true },
       });
-      const imagesToCreate = imageFiles.map((file, index) => ({
-        product_id: id,
-        image_url: file.path,
-        alt_text: product_name,
-        is_main: hasMainImage ? false : index === 0,
-      }));
-      await db.ProductImage.bulkCreate(imagesToCreate);
+      const imagesToCreate = imageFiles.map((file, index) => {
+        // Handle both Cloudinary (returns full URL in path) and local storage
+        const imageUrl = file.path && file.path.startsWith('http')
+          ? file.path  // Cloudinary URL
+          : `/uploads/products/${file.filename || file.originalname}`; // Local storage
+
+        return {
+          product_id: id,
+          image_url: imageUrl,
+          alt_text: product_name || product.product_name,
+          is_main: hasMainImage ? false : index === 0,
+        };
+      });
+      newImages = await db.ProductImage.bulkCreate(imagesToCreate);
     }
 
     await product.save();
-    res.status(200).json(product);
+
+    // Fetch updated product with images
+    const updatedProduct = await db.Product.findByPk(id, {
+      include: [{
+        model: db.ProductImage,
+        attributes: ["image_id", "image_url", "alt_text", "is_main"],
+      }],
+    });
+
+    res.status(200).json({
+      statusCode: 200,
+      message: "Cập nhật sản phẩm thành công",
+      data: updatedProduct,
+    });
   } catch (error) {
     res.status(500).json({
+      statusCode: 500,
       message: "Lỗi khi cập nhật sản phẩm",
       error: error.message,
     });
@@ -741,6 +779,215 @@ export const getTopRatedProductsBySentiment = async (req, res, next) => {
     return next({
       statusCode: 500,
       message: "Lỗi khi lấy sản phẩm đánh giá tốt theo sentiment",
+      error: error.message,
+    });
+  }
+};
+
+// Upload multiple product images (Admin/Staff only)
+export const uploadProductImages = async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "Không có tệp nào được tải lên",
+      });
+    }
+
+    // Validate file types
+    const allowedMimes = ["image/jpeg", "image/png", "image/webp"];
+    const invalidFiles = req.files.filter(
+      (file) => !allowedMimes.includes(file.mimetype)
+    );
+
+    if (invalidFiles.length > 0) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "Chỉ hỗ trợ các định dạng: JPG, PNG, WebP",
+        invalidFiles: invalidFiles.map((f) => f.originalname),
+      });
+    }
+
+    // Build URLs based on storage type
+    const urls = req.files.map((file) => {
+      // For Cloudinary storage, file.path is the full URL
+      // For local storage, we need to construct the URL
+      if (file.path && file.path.startsWith("http")) {
+        return file.path; // Cloudinary URL
+      } else {
+        // Local storage: construct URL from filename
+        return `/uploads/products/${file.filename || file.originalname}`;
+      }
+    });
+
+    return res.status(200).json({
+      statusCode: 200,
+      message: "Upload ảnh thành công",
+      urls,
+      count: urls.length,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      statusCode: 500,
+      message: "Lỗi khi upload ảnh",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * GET /api/product-by-category
+ * Lấy sản phẩm theo danh mục với phân trang
+ * Query params:
+ * - categoryId (required): ID của danh mục
+ * - page (optional): Trang (default: 1)
+ * - limit (optional): Số lượng items trên trang (default: 10)
+ */
+export const getProductsByCategory = async (req, res) => {
+  try {
+    const { categoryId, page = 1, limit = 10 } = req.query;
+
+    // Validation: Kiểm tra categoryId
+    if (!categoryId || !Number.isInteger(Number(categoryId)) || Number(categoryId) <= 0) {
+      return res.status(400).json({
+        code: 400,
+        message: "categoryId là bắt buộc và phải là số nguyên dương",
+      });
+    }
+
+    const parsedCategoryId = Number(categoryId);
+    const parsedPage = Math.max(1, Number(page) || 1);
+    const parsedLimit = Math.max(1, Math.min(100, Number(limit) || 10)); // Max 100 items
+
+    // Kiểm tra category tồn tại
+    const category = await db.Category.findByPk(parsedCategoryId);
+    if (!category) {
+      return res.status(404).json({
+        code: 404,
+        message: "Danh mục không tồn tại",
+      });
+    }
+
+    // Tính offset
+    const offset = (parsedPage - 1) * parsedLimit;
+
+    // Lấy tổng số sản phẩm
+    const total = await db.Product.count({
+      where: { category_id: parsedCategoryId },
+    });
+
+    // Lấy sản phẩm với phân trang
+    const products = await db.Product.findAll({
+      where: { category_id: parsedCategoryId },
+      include: [
+        {
+          model: db.Category,
+          attributes: ["category_id", "category_name"],
+        },
+        {
+          model: db.SubCategory,
+          attributes: ["subcategory_id", "subcategory_name"],
+        },
+        {
+          model: db.ProductImage,
+          attributes: ["image_id", "image_url", "alt_text", "is_main"],
+        },
+      ],
+      offset,
+      limit: parsedLimit,
+      order: [["created_at", "DESC"]],
+    });
+
+    return res.status(200).json({
+      code: 200,
+      data: {
+        items: products,
+        total,
+        page: parsedPage,
+        limit: parsedLimit,
+      },
+    });
+  } catch (error) {
+    console.error("Error in getProductsByCategory:", error);
+    return res.status(500).json({
+      code: 500,
+      message: "Lỗi khi lấy sản phẩm theo danh mục",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * GET /api/products/similar
+ * Lấy sản phẩm tương tự (cùng danh mục) với phân trang
+ * Query params:
+ * - productId (required): ID của sản phẩm
+ * - limit (optional): Số lượng kết quả (default: 10, max: 10)
+ */
+export const getSimilarProductsWithPagination = async (req, res) => {
+  try {
+    const { productId, limit = 10 } = req.query;
+
+    // Validation: Kiểm tra productId
+    if (!productId || !Number.isInteger(Number(productId)) || Number(productId) <= 0) {
+      return res.status(400).json({
+        code: 400,
+        message: "productId là bắt buộc và phải là số nguyên dương",
+      });
+    }
+
+    const parsedProductId = Number(productId);
+    const parsedLimit = Math.max(1, Math.min(10, Number(limit) || 10)); // Max 10 items
+
+    // Kiểm tra product tồn tại
+    const product = await db.Product.findByPk(parsedProductId);
+    if (!product) {
+      return res.status(404).json({
+        code: 404,
+        message: "Sản phẩm không tồn tại",
+      });
+    }
+
+    // Lấy sản phẩm cùng category (loại bỏ chính sản phẩm hiện tại)
+    const similarProducts = await db.Product.findAll({
+      where: {
+        category_id: product.category_id,
+        product_id: { [Op.ne]: parsedProductId }, // Loại bỏ product hiện tại
+      },
+      include: [
+        {
+          model: db.Category,
+          attributes: ["category_id", "category_name"],
+        },
+        {
+          model: db.SubCategory,
+          attributes: ["subcategory_id", "subcategory_name"],
+        },
+        {
+          model: db.ProductImage,
+          attributes: ["image_id", "image_url", "alt_text", "is_main"],
+        },
+      ],
+      limit: parsedLimit,
+      order: [["created_at", "DESC"]],
+    });
+
+    const total = similarProducts.length;
+
+    return res.status(200).json({
+      code: 200,
+      data: {
+        items: similarProducts,
+        total,
+        page: 1,
+        limit: parsedLimit,
+      },
+    });
+  } catch (error) {
+    console.error("Error in getSimilarProductsWithPagination:", error);
+    return res.status(500).json({
+      code: 500,
+      message: "Lỗi khi lấy sản phẩm tương tự",
       error: error.message,
     });
   }

@@ -1,73 +1,219 @@
-import { useMemo } from 'react';
-import { Button, Card, Col, Pagination, Row, Tag, Typography } from 'antd';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
+import { Pagination, Spin, Empty, Row, Col, Button } from 'antd';
+import { ArrowLeftOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import productApi from '@/api/productApi';
+import categoryApi from '@/api/categoryApi';
+import ProductCard from '@/components/ui/product/productCard';
 import PageContainer from '@/components/common/PageContainer';
-import StateSection from '@/components/common/StateSection';
-
-const { Paragraph, Text } = Typography;
-
-const sampleProducts = [
-  { id: '1', name: 'Lumiere Halo Ring', price: 2300, badge: 'Best Seller', slug: 'lumiere-halo-ring' },
-  { id: '2', name: 'Opaline Choker', price: 1800, badge: 'New', slug: 'opaline-choker' },
-  { id: '3', name: 'Aster Pendant', price: 1450, badge: 'Limited', slug: 'aster-pendant' },
-  { id: '4', name: 'Crown Bracelet', price: 2900, badge: 'Best Seller', slug: 'crown-bracelet' },
-  { id: '5', name: 'Etoile Earrings', price: 1200, badge: 'New', slug: 'etoile-earrings' },
-  { id: '6', name: 'Velvet Ring', price: 2100, badge: 'Limited', slug: 'velvet-ring' },
-];
 
 const CategoryPage = () => {
-  const { slug } = useParams();
+  const { categoryId } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const categoryName = useMemo(() => {
-    if (!slug) {
-      return 'Category';
+  // State management
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [categoryName, setCategoryName] = useState('');
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: parseInt(searchParams.get('page')) || 1,
+    limit: 10,
+  });
+
+  // Fetch products by category
+  const fetchProductsByCategory = async (catId, page = 1, limit = 10) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await productApi.getProductsByCategoryWithPagination(
+        catId,
+        page,
+        limit
+      );
+
+      // New API returns { code: 200, data: { items, total, page, limit } }
+      if (response.code === 200 && response.data) {
+        setProducts(response.data.items || []);
+        setPagination({
+          total: response.data.total || 0,
+          page: response.data.page || page,
+          limit: response.data.limit || limit,
+        });
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      setError(err.message || 'Lỗi khi tải sản phẩm');
+      setProducts([]);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    return slug
-      .split('-')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  }, [slug]);
+  // Fetch category name
+  const fetchCategoryName = async (catId) => {
+    try {
+      const response = await categoryApi.getCategoryById(catId);
+      if (response) {
+        setCategoryName(response.category_name || 'Danh mục');
+      }
+    } catch (err) {
+      console.error('Error fetching category:', err);
+      setCategoryName('Danh mục');
+    }
+  };
+
+  // Load products when categoryId or page changes
+  useEffect(() => {
+    if (categoryId) {
+      fetchProductsByCategory(categoryId, pagination.page, pagination.limit);
+      fetchCategoryName(categoryId);
+    }
+  }, [categoryId]);
+
+  // Handle page change
+  const handlePageChange = (page) => {
+    if (categoryId) {
+      setPagination((prev) => ({ ...prev, page }));
+      fetchProductsByCategory(categoryId, page, pagination.limit);
+      setSearchParams({ page });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Handle limit change
+  const handleLimitChange = (page, pageSize) => {
+    if (categoryId) {
+      setPagination((prev) => ({ ...prev, limit: pageSize, page: 1 }));
+      fetchProductsByCategory(categoryId, 1, pageSize);
+      setSearchParams({ page: 1 });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Error UI
+  if (error && !loading) {
+    return (
+      <PageContainer title={categoryName || 'Danh mục'}>
+        <div className="flex flex-col items-center justify-center py-12">
+          <Empty
+            description="Lỗi khi tải sản phẩm"
+            style={{ marginBottom: '20px' }}
+          />
+          <p className="text-red-500 mb-4">{error}</p>
+          <Button
+            type="primary"
+            onClick={() => navigate('/')}
+            icon={<ArrowLeftOutlined />}
+          >
+            Quay lại trang chủ
+          </Button>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  // Loading UI
+  if (loading && products.length === 0) {
+    return (
+      <PageContainer title={categoryName || 'Danh mục'}>
+        <div className="flex items-center justify-center py-12">
+          <Spin size="large" tip="Đang tải sản phẩm..." />
+        </div>
+      </PageContainer>
+    );
+  }
+
+  // Empty UI
+  if (!loading && products.length === 0) {
+    return (
+      <PageContainer title={categoryName || 'Danh mục'}>
+        <div className="flex flex-col items-center justify-center py-12">
+          <Empty
+            description="Không có sản phẩm nào trong danh mục này"
+            style={{ marginBottom: '20px' }}
+          />
+          <Button
+            type="primary"
+            onClick={() => navigate('/')}
+            icon={<ArrowLeftOutlined />}
+          >
+            Quay lại trang chủ
+          </Button>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  // Calculate total pages
+  const totalPages = Math.ceil(pagination.total / pagination.limit);
 
   return (
     <PageContainer
-      title={categoryName}
-      subtitle="Category listing skeleton with responsive card grid and paging controls."
+      title={categoryName || 'Danh mục'}
+      subtitle={`${pagination.total} sản phẩm`}
       breadcrumbItems={[
-        { title: 'Home', href: '/' },
-        { title: categoryName },
+        { title: 'Trang chủ', href: '/' },
+        { title: categoryName || 'Danh mục' },
       ]}
     >
-      <StateSection
-        loading={false}
-        error={null}
-        empty={sampleProducts.length === 0}
-        emptyDescription="No products in this category yet"
-      >
-        <Row gutter={[16, 16]}>
-          {sampleProducts.map((product) => (
-            <Col key={product.id} xs={24} md={12} xl={8}>
-              <Card
-                title={product.name}
-                extra={<Tag color="#B08A4A">{product.badge}</Tag>}
-                actions={[
-                  <Button key={product.id} type="link" onClick={() => navigate(`/product/${product.slug}`)}>
-                    View Product
-                  </Button>,
-                ]}
+      <div className="space-y-6">
+        {/* Products Grid - Responsive Layout */}
+        <div>
+          <Row gutter={[24, 24]}>
+            {products.map((product) => (
+              <Col
+                key={product.product_id}
+                xs={{ span: 24 }} // Mobile: 1 column
+                sm={{ span: 12 }} // Tablet: 2 columns
+                md={{ span: 8 }} // Laptop: 3 columns
+                lg={{ span: 6 }} // Desktop: 4 columns
               >
-                <Paragraph style={{ marginBottom: 8 }}>Fine craftsmanship with editorial style cues.</Paragraph>
-                <Text strong>${product.price.toLocaleString()}</Text>
-              </Card>
-            </Col>
-          ))}
-        </Row>
+                <ProductCard product={product} />
+              </Col>
+            ))}
+          </Row>
 
-        <div className="mt-6 flex justify-center">
-          <Pagination current={1} total={48} pageSize={12} showSizeChanger={false} />
+          {/* Loading overlay during pagination */}
+          {loading && (
+            <div className="fixed inset-0 bg-black bg-opacity-10 flex items-center justify-center z-40 rounded-lg">
+              <Spin size="large" />
+            </div>
+          )}
         </div>
-      </StateSection>
+
+        {/* Pagination controls */}
+        {totalPages > 1 && (
+          <div className="flex flex-col items-center gap-4 pt-6 border-t">
+            <Pagination
+              current={pagination.page}
+              total={pagination.total}
+              pageSize={pagination.limit}
+              onChange={handlePageChange}
+              onShowSizeChange={handleLimitChange}
+              showSizeChanger
+              showTotal={(total, range) =>
+                `Hiển thị ${range[0]} - ${range[1]} trên ${total} sản phẩm`
+              }
+              pageSizeOptions={['10', '20', '30', '40']}
+              style={{ marginTop: '16px' }}
+            />
+          </div>
+        )}
+
+        {/* Additional info */}
+        {products.length > 0 && (
+          <div className="text-center text-gray-500 text-sm pt-4">
+            Trang {pagination.page} / {totalPages}
+          </div>
+        )}
+      </div>
     </PageContainer>
   );
 };

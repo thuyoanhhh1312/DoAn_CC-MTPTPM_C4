@@ -16,6 +16,39 @@ const app = express();
 // Start scheduled background jobs once when server boots.
 monthlyRankUpdateJob();
 
+const ensureAdminUser = async () => {
+  if (process.env.NODE_ENV === "production") {
+    return;
+  }
+
+  try {
+    const adminRole = await db.Role.findOne({ where: { name: "Admin" } });
+    if (!adminRole) {
+      await db.Role.create({
+        id: 1,
+        name: "Admin",
+        description: "Administrator",
+      });
+    }
+
+    const existingAdmin = await db.User.findOne({
+      where: { email: "admin@oanh.local" },
+    });
+
+    if (!existingAdmin) {
+      const password_hash = await bcrypt.hash("Admin@123", 12);
+      await db.User.create({
+        name: "Admin User",
+        email: "admin@oanh.local",
+        password_hash,
+        role_id: 1,
+      });
+    }
+  } catch (error) {
+    console.error("Khong the tao tai khoan admin mac dinh:", error.message);
+  }
+};
+
 const ensureDemoUsers = async () => {
   if (process.env.NODE_ENV === "production") {
     return;
@@ -59,6 +92,11 @@ const ensureDemoUsers = async () => {
       role_id: demoUser.role_id,
     });
   }
+};
+
+const ensureSeedUsers = async () => {
+  await ensureAdminUser();
+  await ensureDemoUsers();
 };
 
 //app.use(express.json());
@@ -125,7 +163,7 @@ app.use(errorHandler);
 const port = process.env.PORT || 3001;
 app.listen(port, async () => {
   try {
-    await ensureDemoUsers();
+    await ensureSeedUsers();
   } catch (error) {
     console.error("Không thể khởi tạo tài khoản demo:", error.message);
   }
