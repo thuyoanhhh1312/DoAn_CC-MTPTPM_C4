@@ -15,6 +15,11 @@ import {
   createArticleSchema,
   updateArticleSchema,
 } from "../validators/articleValidator.js";
+import {
+  calculatePriceSchema,
+  checkoutSchema,
+  updateDepositSchema,
+} from "../validators/orderValidator.js";
 
 const router = express.Router();
 
@@ -24,21 +29,33 @@ import {
   authenticateToken,
   isAdminOrStaff,
 } from "../middlewares/auth.js";
+import { authorizeRoles, ROLE_IDS } from "../middlewares/rbac.js";
 import * as authController from "../controllers/authController.js";
 import * as customerController from "../controllers/customerController.js";
 import * as productController from "../controllers/productController.js";
+import * as orderController from "../controllers/orderController.js";
 import * as searchController from "../controllers/searchController.js";
 
-import * as categoryController from "../controllers/categoryController.js";
+import * as categoryController from "../controllers/categoryControllerCompat.js";
 import * as subCategoryController from "../controllers/subCategoryController.js";
 import * as productReviewController from "../controllers/productReviewController.js";
 import campaignRoutes from "./campaignRoutes.js";
+import promotionLogRoutes from "./promotionLogRoutes.js";
 import * as dashboardController from "../controllers/dashboardController.js";
+import * as roleController from "../controllers/roleController.js";
 
 import * as tagController from "../controllers/tagController.js";
 import rankRoutes from "./rankRoutes.js";
 
 router.get("/tags", tagController.getAllTags);
+router.get(
+  "/roles",
+  authenticateToken,
+  authorizeRoles([ROLE_IDS.ADMIN, ROLE_IDS.STAFF, "admin", "staff"], {
+    message: "Ban khong co quyen xem danh sach vai tro.",
+  }),
+  roleController.getAllRoles,
+);
 
 const blogUploadDir = path.join(process.cwd(), "uploads", "blog");
 if (!fs.existsSync(blogUploadDir)) {
@@ -217,6 +234,53 @@ router.delete(
 );
 router.get("/search-product", searchController.searchProducts);
 router.get("/quick-search-products", searchController.quickSearchProducts);
+router.get(
+  "/orders",
+  authenticateToken,
+  isAdmin,
+  orderController.getAllOrders,
+);
+router.get(
+  "/orders/by-customer/:user_id",
+  authenticateToken,
+  orderController.getOrderByCustomer,
+);
+router.get(
+  "/orders/by-user/:user_id",
+  authenticateToken,
+  isAdminOrStaff,
+  orderController.getOrderByUserId,
+);
+router.get(
+  "/orders/:id",
+  authenticateToken,
+  orderController.getOrderById,
+);
+router.put(
+  "/orders/:id",
+  authenticateToken,
+  isAdminOrStaff,
+  orderController.updatedOrder,
+);
+router.patch(
+  "/orders/:id/deposit",
+  authenticateToken,
+  isAdminOrStaff,
+  validateRequest(updateDepositSchema),
+  orderController.updateIsDeposit,
+);
+router.post(
+  "/calculate-price",
+  authenticateToken,
+  validateRequest(calculatePriceSchema),
+  orderController.calculatePrice,
+);
+router.post(
+  "/checkout",
+  authenticateToken,
+  validateRequest(checkoutSchema),
+  orderController.checkout,
+);
 
 // Product Review
 router.get(
@@ -371,4 +435,5 @@ router.use("/campaigns", campaignRoutes);
 // Rank routes
 router.use("/rank", authenticateToken, isAdmin, rankRoutes);
 
+router.use("/promotion-logs", authenticateToken, promotionLogRoutes);
 export default router;

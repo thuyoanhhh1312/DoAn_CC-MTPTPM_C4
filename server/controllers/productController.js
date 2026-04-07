@@ -1,6 +1,7 @@
 import db from "../models/index.js";
 import { Op, fn, col, literal, Sequelize } from "sequelize";
 import slugify from "slugify";
+import { getExistingProductReviewAttributes } from "../utils/productReviewSchema.js";
 
 export const getAllProducts = async (req, res) => {
   const { keyword } = req.query;
@@ -203,8 +204,28 @@ export const getProductBySlug = async (req, res, next) => {
         .json({ message: "Không tìm thấy sản phẩm với slug này" });
     }
 
+    const reviewAttributes = await getExistingProductReviewAttributes([
+      "review_id",
+      "product_id",
+      "customer_id",
+      "rating",
+      "content",
+      "sentiment",
+      "sentiment_confidence",
+      "is_meta_review",
+      "meta_confidence",
+      "use_for_stats",
+      "is_suspicious",
+      "suspicious_reason",
+      "is_hidden",
+      "hidden_reason",
+      "created_at",
+      "updated_at",
+    ]);
+
     const reviews = await db.ProductReview.findAll({
       where: { product_id: product.product_id },
+      attributes: reviewAttributes,
       include: [
         {
           model: db.Customer,

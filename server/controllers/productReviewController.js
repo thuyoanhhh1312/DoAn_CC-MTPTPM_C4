@@ -1,12 +1,99 @@
 import db from "../models/index.js";
 import axios from "axios";
 import { VALID_HIDE_REASON_VALUES } from "../config/reviewConstants.js";
+import {
+  getExistingProductReviewAttributes,
+  pickExistingProductReviewFields,
+} from "../utils/productReviewSchema.js";
+
+const getSuspiciousReviewInfo = (review) => {
+  const useForStats = review.use_for_stats !== false;
+  const storedFlag = Boolean(review.is_suspicious);
+  const storedReason = review.suspicious_reason || null;
+
+  if (useForStats && review.rating >= 4 && review.sentiment === "NEG") {
+    return {
+      is_suspicious: true,
+      suspicious_reason:
+        storedReason || "Rating cao nhưng nội dung mang cảm xúc tiêu cực",
+      suspicious_type: "rating_positive_sentiment_negative",
+    };
+  }
+
+  if (useForStats && review.rating <= 2 && review.sentiment === "POS") {
+    return {
+      is_suspicious: true,
+      suspicious_reason:
+        storedReason || "Rating thấp nhưng nội dung mang cảm xúc tích cực",
+      suspicious_type: "rating_negative_sentiment_positive",
+    };
+  }
+
+  return {
+    is_suspicious: storedFlag,
+    suspicious_reason: storedFlag
+      ? storedReason || "Review được hệ thống đánh dấu nghi vấn"
+      : null,
+    suspicious_type: storedFlag ? "stored_flag" : null,
+  };
+};
+
+const REVIEW_STATS_ATTRIBUTES = [
+  "review_id",
+  "product_id",
+  "customer_id",
+  "rating",
+  "content",
+  "sentiment",
+  "sentiment_confidence",
+  "is_suspicious",
+  "suspicious_reason",
+  "is_hidden",
+  "hidden_reason",
+  "is_meta_review",
+  "meta_confidence",
+  "use_for_stats",
+  "created_at",
+  "updated_at",
+];
+
+const REVIEW_LOOKUP_ATTRIBUTES = [
+  "review_id",
+  "product_id",
+  "customer_id",
+  "rating",
+  "content",
+  "sentiment",
+  "sentiment_confidence",
+  "is_meta_review",
+  "meta_confidence",
+  "use_for_stats",
+  "is_suspicious",
+  "suspicious_reason",
+  "is_hidden",
+  "hidden_reason",
+  "needs_admin_review",
+  "admin_review_status",
+  "admin_review_note",
+  "reviewed_by",
+  "created_at",
+  "updated_at",
+];
+
+const getSentimentBucket = (sentiment, fallback = "UNKNOWN") => {
+  const value = typeof sentiment === "string" ? sentiment.trim().toUpperCase() : "";
+  if (["POS", "NEG", "NEU", "UNC", "UNKNOWN"].includes(value)) {
+    return value;
+  }
+  return fallback;
+};
 
 export const getReviewsByProductId = async (req, res, next) => {
   const productId = req.params.id;
 
   try {
     const reviews = await db.ProductReview.findAll({
+      attributes: REVIEW_STATS_ATTRIBUTES,
       include: [
         {
           model: db.Customer,
@@ -20,9 +107,17 @@ export const getReviewsByProductId = async (req, res, next) => {
       order: [["created_at", "DESC"]],
     });
 
+    const enrichedReviews = reviews.map((review) => {
+      const plainReview = review.toJSON();
+      return {
+        ...plainReview,
+        ...getSuspiciousReviewInfo(plainReview),
+      };
+    });
+
     return res.status(200).json({
       message: "Lấy danh sách đánh giá thành công",
-      reviews,
+      reviews: enrichedReviews,
     });
   } catch (err) {
     return next({
@@ -47,7 +142,11 @@ export const adminLabelSentiment = async (req, res, next) => {
       });
     }
 
-    const review = await db.ProductReview.findByPk(reviewId);
+    const review = await db.ProductReview.findByPk(reviewId, {
+      attributes: await getExistingProductReviewAttributes(
+        REVIEW_LOOKUP_ATTRIBUTES,
+      ),
+    });
     if (!review) {
       return next({
         statusCode: 404,
@@ -256,7 +355,7 @@ export const createReview = async (req, res, next) => {
     }
 
     // ================== TẠO REVIEW TRONG DB ==================
-    const newReview = await db.ProductReview.create({
+    const reviewPayload = await pickExistingProductReviewFields({
       product_id: productId,
       customer_id,
       rating,
@@ -288,6 +387,8 @@ export const createReview = async (req, res, next) => {
       created_at: new Date(),
       updated_at: new Date(),
     });
+
+    const newReview = await db.ProductReview.create(reviewPayload);
 
     return res.status(201).json({
       message: needsAdminReview
@@ -336,11 +437,7 @@ export const getReviewSummary = async (req, res, next) => {
 
     reviews.forEach((r) => {
       // Đếm sentiment
-      if (r.sentiment && sentimentCount.hasOwnProperty(r.sentiment)) {
-        sentimentCount[r.sentiment]++;
-      } else {
-        sentimentCount.UNKNOWN++;
-      }
+      sentimentCount[getSentimentBucket(r.sentiment)]++;
       // Đếm rating
       if (r.rating && ratingDistribution.hasOwnProperty(r.rating.toString())) {
         ratingDistribution[r.rating.toString()]++;
@@ -371,6 +468,7 @@ export const getReviewSummaryWithSuspicious = async (req, res, next) => {
 
   try {
     const reviews = await db.ProductReview.findAll({
+      attributes: REVIEW_STATS_ATTRIBUTES,
       include: [
         {
           model: db.Customer,
@@ -400,11 +498,7 @@ export const getReviewSummaryWithSuspicious = async (req, res, next) => {
 
     reviews.forEach((r) => {
       // Sentiment count
-      if (r.sentiment && sentimentCount.hasOwnProperty(r.sentiment)) {
-        sentimentCount[r.sentiment]++;
-      } else {
-        sentimentCount.UNKNOWN++;
-      }
+      sentimentCount[getSentimentBucket(r.sentiment)]++;
 
       // Rating distribution
       if (r.rating && ratingDistribution.hasOwnProperty(r.rating)) {
@@ -481,6 +575,7 @@ export const getReviewSummaryWithSuspicious = async (req, res, next) => {
 export const getAllReviewsAdmin = async (req, res, next) => {
   try {
     const reviews = await db.ProductReview.findAll({
+      attributes: REVIEW_STATS_ATTRIBUTES,
       include: [
         {
           model: db.Customer,
@@ -494,9 +589,17 @@ export const getAllReviewsAdmin = async (req, res, next) => {
       order: [["created_at", "DESC"]],
     });
 
+    const enrichedReviews = reviews.map((review) => {
+      const plainReview = review.toJSON();
+      return {
+        ...plainReview,
+        ...getSuspiciousReviewInfo(plainReview),
+      };
+    });
+
     return res.status(200).json({
       message: "Lấy danh sách tất cả đánh giá thành công",
-      reviews: reviews || [],
+      reviews: enrichedReviews || [],
     });
   } catch (error) {
     return next({
@@ -527,6 +630,7 @@ export const getSentimentStatsByProduct = async (req, res, next) => {
     }
 
     const reviews = await db.ProductReview.findAll({
+      attributes: REVIEW_STATS_ATTRIBUTES,
       where: whereClause,
       include: [
         {
@@ -547,6 +651,8 @@ export const getSentimentStatsByProduct = async (req, res, next) => {
           product_id: productId,
           product_name: productName,
           total_reviews: 0,
+          suspicious_count: 0,
+          suspicious_percentage: 0,
           sentiment_count: { POS: 0, NEG: 0, NEU: 0, UNC: 0 },
           sentiment_percentage: { POS: 0, NEG: 0, NEU: 0, UNC: 0 },
           avg_rating: 0,
@@ -556,7 +662,11 @@ export const getSentimentStatsByProduct = async (req, res, next) => {
       }
 
       stats[productId].total_reviews += 1;
-      stats[productId].sentiment_count[review.sentiment || "NEU"] += 1;
+      stats[productId].sentiment_count[getSentimentBucket(review.sentiment, "UNC")] += 1;
+      const suspiciousInfo = getSuspiciousReviewInfo(review);
+      if (suspiciousInfo.is_suspicious) {
+        stats[productId].suspicious_count += 1;
+      }
 
       // Chỉ cộng rating nếu use_for_stats = true (loại meta-reviews)
       if (review.use_for_stats !== false) {
@@ -581,6 +691,8 @@ export const getSentimentStatsByProduct = async (req, res, next) => {
           total > 0 ? Math.round((stat.sentiment_count.UNC / total) * 100) : 0,
       };
       // Tính trung bình từ reviews có use_for_stats = true
+      stats[productId].suspicious_percentage =
+        total > 0 ? Math.round((stat.suspicious_count / total) * 100) : 0;
       stat.avg_rating =
         stat.total_rating_count > 0
           ? (stat.total_rating / stat.total_rating_count).toFixed(2)
@@ -611,15 +723,8 @@ export const getSuspiciousReviews = async (req, res, next) => {
   try {
     const { type = "all" } = req.query; // all, suspicious, normal
 
-    let whereClause = {};
-    if (type === "suspicious") {
-      whereClause.is_suspicious = true;
-    } else if (type === "normal") {
-      whereClause.is_suspicious = false;
-    }
-
     const reviews = await db.ProductReview.findAll({
-      where: whereClause,
+      attributes: REVIEW_STATS_ATTRIBUTES,
       include: [
         {
           model: db.Customer,
@@ -633,10 +738,26 @@ export const getSuspiciousReviews = async (req, res, next) => {
       order: [["created_at", "DESC"]],
     });
 
+    const mappedReviews = reviews.map((review) => {
+      const plainReview = review.toJSON();
+      return {
+        ...plainReview,
+        ...getSuspiciousReviewInfo(plainReview),
+      };
+    });
+
+    let filteredReviews = mappedReviews;
+    if (type === "suspicious") {
+      filteredReviews = mappedReviews.filter((review) => review.is_suspicious);
+    } else if (type === "normal") {
+      filteredReviews = mappedReviews.filter((review) => !review.is_suspicious);
+    }
+
     return res.status(200).json({
       message: "Lấy reviews bất thường thành công",
       type,
-      reviews: reviews || [],
+      count: filteredReviews.length,
+      reviews: filteredReviews || [],
     });
   } catch (error) {
     return next({
@@ -710,6 +831,7 @@ export const getReviewSummaryPublicDetailed = async (req, res, next) => {
 
   try {
     const reviews = await db.ProductReview.findAll({
+      attributes: REVIEW_STATS_ATTRIBUTES,
       include: [
         {
           model: db.Customer,
@@ -742,11 +864,7 @@ export const getReviewSummaryPublicDetailed = async (req, res, next) => {
 
     reviews.forEach((r) => {
       // Sentiment count
-      if (r.sentiment && sentimentCount.hasOwnProperty(r.sentiment)) {
-        sentimentCount[r.sentiment]++;
-      } else {
-        sentimentCount.UNKNOWN++;
-      }
+      sentimentCount[getSentimentBucket(r.sentiment)]++;
 
       // Rating distribution
       if (r.rating && ratingDistribution.hasOwnProperty(r.rating)) {

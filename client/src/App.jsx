@@ -9,6 +9,8 @@ import EditSubCategory from "./pages/admin/SubCategory/edit";
 import Search from "./pages/Search";
 import Home from "./pages/Home";
 import ProductDetail from "./pages/ProductDetail";
+import CartPage from "./pages/CartPage";
+import CheckoutPage from "./pages/CheckoutPage";
 
 import Dashboard from "./pages/admin/Dashboard";
 import RankManagement from "./pages/admin/Rank";
@@ -33,6 +35,9 @@ import EditNews from "./pages/admin/News/edit";
 import NewsCategory from "./pages/admin/NewsCategory/index";
 import AddNewsCategory from "./pages/admin/NewsCategory/add";
 import EditNewsCategory from "./pages/admin/NewsCategory/edit";
+import PromotionLogsPage from "./pages/admin/PromotionLogsPage";
+import PromotionLogSendPage from "./pages/admin/PromotionLogSendPage";
+import ReviewsModerationPage from "./pages/admin/ReviewsModerationPage";
 
 function App() {
   const dispatch = useDispatch();
@@ -193,9 +198,35 @@ function App() {
               </AdminOrStaffRoute>
             }
           />
+          <Route
+            path="/admin/promotion-logs"
+            element={
+              <AdminOrStaffRoute>
+                <PromotionLogsPage />
+              </AdminOrStaffRoute>
+            }
+          />
+          <Route
+            path="/admin/promotion-logs/send"
+            element={
+              <AdminOrStaffRoute>
+                <PromotionLogSendPage />
+              </AdminOrStaffRoute>
+            }
+          />
+          <Route
+            path="/admin/reviews"
+            element={
+              <AdminOrStaffRoute>
+                <ReviewsModerationPage />
+              </AdminOrStaffRoute>
+            }
+          />
         </Route>
         <Route path="/" element={<Home />} />
         <Route path="/search" element={<Search />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/:slug" element={<ProductDetail />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
