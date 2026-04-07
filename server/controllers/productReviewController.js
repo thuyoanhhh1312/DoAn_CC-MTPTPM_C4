@@ -6,6 +6,7 @@ import {
   getExistingProductReviewAttributes,
   pickExistingProductReviewFields,
 } from "../utils/productReviewSchema.js";
+import { ERROR_CODES } from "../utils/errorCodes.js";
 
 const getSuspiciousReviewInfo = (review) => {
   const useForStats = review.use_for_stats !== false;
@@ -190,10 +191,50 @@ export const createReview = async (req, res, next) => {
   const requestUserId = Number(requestUserIdRaw);
 
   try {
+    const parsedProductId = Number(productId);
+    const parsedRating = Number(rating);
+    const normalizedContent = typeof content === "string" ? content.trim() : "";
+
+    if (!Number.isInteger(parsedProductId) || parsedProductId <= 0) {
+      return next({
+        statusCode: 400,
+        code: ERROR_CODES.VALIDATION_ERROR,
+        message: "productId không hợp lệ",
+      });
+    }
+
+    if (!Number.isFinite(parsedRating) || parsedRating < 1 || parsedRating > 5) {
+      return next({
+        statusCode: 400,
+        code: ERROR_CODES.VALIDATION_ERROR,
+        message: "rating phải từ 1 đến 5",
+      });
+    }
+
+    if (!normalizedContent) {
+      return next({
+        statusCode: 400,
+        code: ERROR_CODES.VALIDATION_ERROR,
+        message: "Nội dung đánh giá không được để trống",
+      });
+    }
+
+    const product = await db.Product.findByPk(parsedProductId, {
+      attributes: ["product_id"],
+    });
+    if (!product) {
+      return next({
+        statusCode: 404,
+        code: ERROR_CODES.VALIDATION_ERROR,
+        message: "Sản phẩm không tồn tại",
+      });
+    }
+
     // ====== Tìm customer_id từ user_id ======
     if (!Number.isInteger(requestUserId) || requestUserId <= 0) {
       return next({
         statusCode: 400,
+        code: ERROR_CODES.VALIDATION_ERROR,
         message: "Thiếu hoặc sai user_id từ token/body",
       });
     }
@@ -204,9 +245,10 @@ export const createReview = async (req, res, next) => {
 
     const customer_id = customer?.id ?? customer?.customer_id;
 
-    if (!requestUserId || !customer_id || !rating || !content) {
+    if (!requestUserId || !customer_id || !parsedRating || !normalizedContent) {
       return next({
         statusCode: 400,
+        code: ERROR_CODES.VALIDATION_ERROR,
         message:
           "Thiếu dữ liệu bắt buộc: user_id/customer_id, rating hoặc nội dung đánh giá",
       });
@@ -230,7 +272,9 @@ export const createReview = async (req, res, next) => {
 
     // ================== GỌI PIPELINE /analyze ==================
     try {
-      const pipelineUrl = `${process.env.NLP_PIPELINE_URL}/analyze`;
+      const nlpBaseUrl =
+        process.env.NLP_PIPELINE_URL?.trim() || "http://127.0.0.1:5002";
+      const pipelineUrl = new URL("/analyze", nlpBaseUrl).toString();
       const toxicRes = await axios.post(
         pipelineUrl,
         { text: content },
@@ -357,10 +401,10 @@ export const createReview = async (req, res, next) => {
 
     // ================== TẠO REVIEW TRONG DB ==================
     const reviewPayload = await pickExistingProductReviewFields({
-      product_id: productId,
+      product_id: parsedProductId,
       customer_id,
-      rating,
-      content,
+      rating: parsedRating,
+      content: normalizedContent,
 
       // Sentiment (L4)
       sentiment,
@@ -389,7 +433,18 @@ export const createReview = async (req, res, next) => {
       updated_at: new Date(),
     });
 
-    const newReview = await db.ProductReview.create(reviewPayload);
+    const reviewFields = Object.keys(reviewPayload);
+    if (reviewFields.length === 0) {
+      return next({
+        statusCode: 500,
+        code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+        message: "Không thể tạo đánh giá do cấu trúc bảng product_review không hợp lệ",
+      });
+    }
+
+    const newReview = await db.ProductReview.create(reviewPayload, {
+      fields: reviewFields,
+    });
 
     return res.status(201).json({
       message: needsAdminReview
@@ -404,8 +459,22 @@ export const createReview = async (req, res, next) => {
       },
     });
   } catch (err) {
+    if (
+      err?.name === "SequelizeValidationError" ||
+      err?.name === "SequelizeDatabaseError" ||
+      err?.name === "SequelizeForeignKeyConstraintError"
+    ) {
+      return next({
+        statusCode: 400,
+        code: ERROR_CODES.VALIDATION_ERROR,
+        message: "Dữ liệu đánh giá không hợp lệ",
+        error: err.message,
+      });
+    }
+
     return next({
       statusCode: 500,
+      code: ERROR_CODES.INTERNAL_SERVER_ERROR,
       message: "Lỗi tạo đánh giá",
       error: err.message,
     });

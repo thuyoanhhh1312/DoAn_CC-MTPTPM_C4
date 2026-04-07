@@ -177,7 +177,11 @@ const ProductDetail = () => {
       loadReviews();
       getRatingSummary();
     } catch (error) {
-      toast.error("Gửi đánh giá thất bại");
+      const errMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Gửi đánh giá thất bại";
+      toast.error(errMessage);
     }
   };
 

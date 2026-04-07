@@ -13,6 +13,9 @@ import monthlyRankUpdateJob from "./jobs/monthlyRankUpdateJob.js";
 
 const app = express();
 
+// Browser tự động gọi favicon khi mở URL trực tiếp; trả 204 để tránh nhiễu log/error.
+app.get("/favicon.ico", (req, res) => res.status(204).end());
+
 // Start scheduled background jobs once when server boots.
 monthlyRankUpdateJob();
 
@@ -103,6 +106,10 @@ const ensureSeedUsers = async () => {
 
 // Logging middleware để debug
 app.use((req, res, next) => {
+  if (req.url === "/favicon.ico" || req.method === "OPTIONS") {
+    return next();
+  }
+
   console.log(`\n=== Incoming Request ===`);
   console.log(`${req.method} ${req.url}`);
   console.log(`Headers:`, req.headers);
