@@ -7,8 +7,12 @@ import path from "path";
 import apiRoutes from "./routes/apiRoutes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import db from "./models/index.js";
+import monthlyRankUpdateJob from "./jobs/monthlyRankUpdateJob.js";
 
 const app = express();
+
+// Start scheduled background jobs once when server boots.
+monthlyRankUpdateJob();
 
 const ensureDemoUsers = async () => {
   if (process.env.NODE_ENV === "production") {

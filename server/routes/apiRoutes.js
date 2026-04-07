@@ -45,6 +45,8 @@ import * as dashboardController from "../controllers/dashboardController.js";
 import * as roleController from "../controllers/roleController.js";
 
 import * as tagController from "../controllers/tagController.js";
+import rankRoutes from "./rankRoutes.js";
+
 router.get("/tags", tagController.getAllTags);
 router.get(
   "/roles",
@@ -430,5 +432,8 @@ router.get(
 );
 // Campaign routes
 router.use("/campaigns", campaignRoutes);
+// Rank routes
+router.use("/rank", authenticateToken, isAdmin, rankRoutes);
+
 router.use("/promotion-logs", authenticateToken, promotionLogRoutes);
 export default router;
