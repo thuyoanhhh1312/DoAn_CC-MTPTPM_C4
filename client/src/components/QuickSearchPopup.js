@@ -17,19 +17,18 @@ const QuickSearchPopup = ({ open, onClose }) => {
   const [noResult, setNoResult] = useState(false);
   const navigate = useNavigate();
 
+  const handleClose = () => {
+    setSearchText("");
+    setQuickResults([]);
+    setNoResult(false);
+    setSearching(false);
+    onClose();
+  };
+
   useEffect(() => {
-    if (!open) {
-      setSearchText("");
-      setQuickResults([]);
-      setNoResult(false);
+    if (!open || searchText.trim() === "") {
       return;
     }
-    if (searchText.trim() === "") {
-      setQuickResults([]);
-      setNoResult(false);
-      return;
-    }
-    setSearching(true);
     const delayDebounce = setTimeout(async () => {
       const products = await productApi.quickSearchProducts(searchText, 8);
       setQuickResults(products);
@@ -39,7 +38,18 @@ const QuickSearchPopup = ({ open, onClose }) => {
     return () => clearTimeout(delayDebounce);
   }, [searchText, open]);
 
-  const handleInputChange = (e) => setSearchText(e.target.value);
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setSearchText(value);
+
+    if (value.trim() === "") {
+      setQuickResults([]);
+      setNoResult(false);
+      setSearching(false);
+    } else {
+      setSearching(true);
+    }
+  };
 
   const handleKeyDown = (e) => {
     if (e.key !== "Enter") return;
@@ -49,19 +59,19 @@ const QuickSearchPopup = ({ open, onClose }) => {
     if (!keyword) return;
 
     navigate(`/search?keyword=${encodeURIComponent(keyword)}`);
-    onClose();
+    handleClose();
   };
 
   const handleSelectKeyword = (keyword) => {
     setSearchText(keyword);
     navigate(`/search?keyword=${encodeURIComponent(keyword)}`);
-    onClose();
+    handleClose();
   };
 
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       maxWidth="md"
       fullWidth
       TransitionComponent={Transition}
@@ -84,7 +94,7 @@ const QuickSearchPopup = ({ open, onClose }) => {
       >
         <IconButton
           aria-label="close"
-          onClick={onClose}
+          onClick={handleClose}
           sx={{
             position: "absolute",
             right: 20,
@@ -108,7 +118,7 @@ const QuickSearchPopup = ({ open, onClose }) => {
           noResult={noResult}
           searching={searching}
           onSelectKeyword={handleSelectKeyword}
-          onClose={onClose}
+          onClose={handleClose}
         />
       </Box>
     </Dialog>

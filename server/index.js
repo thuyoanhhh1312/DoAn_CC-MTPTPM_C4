@@ -4,11 +4,17 @@ import cors from "cors";
 import bcrypt from "bcryptjs";
 import vnpayRouter from "./vnpay/payment.js";
 
+import fs from "fs";
+import path from "path";
 import apiRoutes from "./routes/apiRoutes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import db from "./models/index.js";
+import monthlyRankUpdateJob from "./jobs/monthlyRankUpdateJob.js";
 
 const app = express();
+
+// Start scheduled background jobs once when server boots.
+monthlyRankUpdateJob();
 
 const ensureDemoUsers = async () => {
   if (process.env.NODE_ENV === "production") {
@@ -101,6 +107,14 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Upload routes
 app.use("/api/payment", vnpayRouter);
+
+// Local upload static serving for CKEditor blog images
+const uploadsDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use("/uploads", express.static(uploadsDir));
+
 // API routes
 app.use(apiRoutes);
 app.use("/api", apiRoutes);

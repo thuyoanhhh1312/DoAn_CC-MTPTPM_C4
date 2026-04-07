@@ -1,10 +1,25 @@
 // routes/apiRoutes.js
 import express from "express";
+import fs from "fs";
+import path from "path";
+import multer from "multer";
 import {
   getSimilarProducts,
   filterProducts,
 } from "../controllers/productController.js";
 import upload from "../middlewares/upload.js";
+import { validateRequest } from "../middlewares/validateRequest.js";
+import * as articleController from "../controllers/articleController.js";
+import * as articleCategoryController from "../controllers/articleCategoryController.js";
+import {
+  createArticleSchema,
+  updateArticleSchema,
+} from "../validators/articleValidator.js";
+import {
+  calculatePriceSchema,
+  checkoutSchema,
+  updateDepositSchema,
+} from "../validators/orderValidator.js";
 
 const router = express.Router();
 
@@ -14,17 +29,62 @@ import {
   authenticateToken,
   isAdminOrStaff,
 } from "../middlewares/auth.js";
+import { authorizeRoles, ROLE_IDS } from "../middlewares/rbac.js";
 import * as authController from "../controllers/authController.js";
 import * as customerController from "../controllers/customerController.js";
 import * as productController from "../controllers/productController.js";
+import * as orderController from "../controllers/orderController.js";
 import * as searchController from "../controllers/searchController.js";
 
-import * as categoryController from "../controllers/categoryController.js";
+import * as categoryController from "../controllers/categoryControllerCompat.js";
 import * as subCategoryController from "../controllers/subCategoryController.js";
 import * as productReviewController from "../controllers/productReviewController.js";
+import campaignRoutes from "./campaignRoutes.js";
+import promotionLogRoutes from "./promotionLogRoutes.js";
+import * as dashboardController from "../controllers/dashboardController.js";
+import * as roleController from "../controllers/roleController.js";
 
 import * as tagController from "../controllers/tagController.js";
+import rankRoutes from "./rankRoutes.js";
+
 router.get("/tags", tagController.getAllTags);
+router.get(
+  "/roles",
+  authenticateToken,
+  authorizeRoles([ROLE_IDS.ADMIN, ROLE_IDS.STAFF, "admin", "staff"], {
+    message: "Ban khong co quyen xem danh sach vai tro.",
+  }),
+  roleController.getAllRoles,
+);
+
+const blogUploadDir = path.join(process.cwd(), "uploads", "blog");
+if (!fs.existsSync(blogUploadDir)) {
+  fs.mkdirSync(blogUploadDir, { recursive: true });
+}
+
+const blogImageUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, blogUploadDir),
+    filename: (_req, file, cb) => {
+      const safeName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, "_");
+      cb(null, `${Date.now()}-${safeName}`);
+    },
+  }),
+});
+
+// CKEditor image upload endpoint (used by RichTextEditor upload adapter)
+router.post(
+  "/uploads/blog-image",
+  blogImageUpload.single("upload"),
+  (req, res) => {
+    if (!req.file?.filename) {
+      return res.status(400).json({ message: "Upload thất bại" });
+    }
+
+    const publicUrl = `${req.protocol}://${req.get("host")}/uploads/blog/${req.file.filename}`;
+    return res.json({ url: publicUrl });
+  },
+);
 
 // Auth routes
 router.post("/auth/register", authController.registerUser);
@@ -174,6 +234,53 @@ router.delete(
 );
 router.get("/search-product", searchController.searchProducts);
 router.get("/quick-search-products", searchController.quickSearchProducts);
+router.get(
+  "/orders",
+  authenticateToken,
+  isAdmin,
+  orderController.getAllOrders,
+);
+router.get(
+  "/orders/by-customer/:user_id",
+  authenticateToken,
+  orderController.getOrderByCustomer,
+);
+router.get(
+  "/orders/by-user/:user_id",
+  authenticateToken,
+  isAdminOrStaff,
+  orderController.getOrderByUserId,
+);
+router.get(
+  "/orders/:id",
+  authenticateToken,
+  orderController.getOrderById,
+);
+router.put(
+  "/orders/:id",
+  authenticateToken,
+  isAdminOrStaff,
+  orderController.updatedOrder,
+);
+router.patch(
+  "/orders/:id/deposit",
+  authenticateToken,
+  isAdminOrStaff,
+  validateRequest(updateDepositSchema),
+  orderController.updateIsDeposit,
+);
+router.post(
+  "/calculate-price",
+  authenticateToken,
+  validateRequest(calculatePriceSchema),
+  orderController.calculatePrice,
+);
+router.post(
+  "/checkout",
+  authenticateToken,
+  validateRequest(checkoutSchema),
+  orderController.checkout,
+);
 
 // Product Review
 router.get(
@@ -232,4 +339,101 @@ router.post(
   authenticateToken,
   productReviewController.createReview,
 );
+
+// Public
+router.get("/news", articleController.getNews);
+router.get("/news/:slug", articleController.getNewsBySlug);
+
+// Article categories
+router.get("/news-categories", articleCategoryController.getAll);
+router.get("/news-categories/:id", articleCategoryController.getById);
+router.post(
+  "/admin/news-categories",
+  authenticateToken,
+  isAdminOrStaff,
+  articleCategoryController.create,
+);
+router.get(
+  "/admin/news-categories/:id",
+  authenticateToken,
+  isAdminOrStaff,
+  articleCategoryController.getById,
+);
+router.put(
+  "/admin/news-categories/:id",
+  authenticateToken,
+  isAdminOrStaff,
+  articleCategoryController.update,
+);
+router.delete(
+  "/admin/news-categories/:id",
+  authenticateToken,
+  isAdminOrStaff,
+  articleCategoryController.destroy,
+);
+
+// Admin/Staff - GET tất cả bài (không filter status)
+router.get(
+  "/admin/news",
+  authenticateToken,
+  isAdminOrStaff,
+  async (req, res, next) => {
+    // Gọi getNews nhưng với status = null để lấy tất cả
+    req.query.status = null;
+    articleController.getNews(req, res, next);
+  },
+);
+
+// Admin/Staff - GET single bài by ID (for edit page)
+router.get(
+  "/admin/news/:id",
+  authenticateToken,
+  isAdminOrStaff,
+  articleController.getNewsById,
+);
+
+// Admin/Staff - POST tạo bài
+router.post(
+  "/admin/news",
+  authenticateToken,
+  isAdminOrStaff,
+  upload.single("thumbnail"), // bật nếu có upload ảnh
+  validateRequest(createArticleSchema),
+  articleController.createNews,
+);
+
+router.put(
+  "/admin/news/:id",
+  authenticateToken,
+  isAdminOrStaff,
+  upload.single("thumbnail"),
+  validateRequest(updateArticleSchema),
+  articleController.updateNews,
+);
+
+router.delete(
+  "/admin/news/:id",
+  authenticateToken,
+  isAdminOrStaff,
+  articleController.deleteNews,
+);
+//Dashboard routes
+router.get(
+  "/dashboard/revenue",
+  authenticateToken,
+  isAdmin,
+  dashboardController.getRevenueByPeriod,
+);
+router.get(
+  "/dashboard/orders/count",
+  authenticateToken,
+  isAdmin,
+  dashboardController.getOrderCountByPeriod,
+);
+// Campaign routes
+router.use("/campaigns", campaignRoutes);
+// Rank routes
+router.use("/rank", authenticateToken, isAdmin, rankRoutes);
+
+router.use("/promotion-logs", authenticateToken, promotionLogRoutes);
 export default router;
