@@ -125,7 +125,7 @@ router.put(
   "/customers/profile",
   authenticateToken,
   validateRequest(updateProfileSchema),
-  authController.updateProfile,
+  customerController.updateCustomerProfile,
 );
 router.get("/customers/by-user/:userId", customerController.getCustomer);
 

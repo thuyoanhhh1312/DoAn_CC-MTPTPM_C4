@@ -1,14 +1,21 @@
+import bcrypt from "bcryptjs";
 import db from "../models/index.js";
 import { Op, fn, col, literal } from "sequelize";
 
 const SUSPENDED_TOKEN_MARKER = "__ACCOUNT_SUSPENDED__";
-// Lấy khách hàng theo ID
+
+const generateFallbackPhone = () => {
+  const suffix = String(Date.now()).slice(-9);
+  return `0${suffix.padStart(9, "0")}`;
+};
+
 export const getCustomerById = async (req, res) => {
   const { id } = req.params;
   try {
     const customer = await db.Customer.findByPk(id);
-    if (!customer)
+    if (!customer) {
       return res.status(404).json({ message: "Khách hàng không tìm thấy" });
+    }
     res.status(200).json(customer);
   } catch (err) {
     res
@@ -17,7 +24,6 @@ export const getCustomerById = async (req, res) => {
   }
 };
 
-// Lấy danh sách email khách hàng (dùng cho chọn gửi email thủ công)
 export const getCustomerEmails = async (req, res) => {
   try {
     const { keyword } = req.query;
@@ -37,7 +43,7 @@ export const getCustomerEmails = async (req, res) => {
         {
           model: db.User,
           attributes: [],
-          where: { role_id: 2 }, // chỉ lấy user role customer
+          where: { role_id: 2 },
           required: true,
         },
       ],
@@ -54,13 +60,13 @@ export const getCustomerEmails = async (req, res) => {
   }
 };
 
-// Dừng tài khoản khách hàng (không xóa dữ liệu)
 export const deleteCustomer = async (req, res) => {
   const { id } = req.params;
   try {
     const customer = await db.Customer.findByPk(id);
-    if (!customer)
+    if (!customer) {
       return res.status(404).json({ message: "Khách hàng không tìm thấy" });
+    }
 
     const user = await db.User.findByPk(customer.user_id);
     if (!user) {
@@ -70,28 +76,25 @@ export const deleteCustomer = async (req, res) => {
     }
 
     if (user.refresh_token === SUSPENDED_TOKEN_MARKER) {
-      return res
-        .status(200)
-        .json({
-          message: "Tài khoản khách hàng đã ở trạng thái dừng hoạt động",
-        });
+      return res.status(200).json({
+        message: "Tài khoản khách hàng đã ở trạng thái dừng hoạt động",
+      });
     }
 
     user.refresh_token = SUSPENDED_TOKEN_MARKER;
     await user.save();
 
-    res.status(200).json({ message: "Đã dừng hoạt động tài khoản khách hàng" });
+    res.status(200).json({
+      message: "Đã dừng hoạt động tài khoản khách hàng",
+    });
   } catch (err) {
-    res
-      .status(400)
-      .json({
-        message: "Lỗi khi dừng tài khoản khách hàng",
-        error: err.message,
-      });
+    res.status(400).json({
+      message: "Lỗi khi dừng tài khoản khách hàng",
+      error: err.message,
+    });
   }
 };
 
-// Lấy danh sách khách hàng kèm số lượng đơn hàng và tổng tiền đơn hàng
 export const getAllCustomers = async (req, res) => {
   const { keyword } = req.query;
 
@@ -113,15 +116,8 @@ export const getAllCustomers = async (req, res) => {
       where: whereClause,
       attributes: {
         include: [
-          // Đếm số đơn hàng
           [fn("COUNT", col("Orders.order_id")), "orderCount"],
-          // Tổng tiền đơn hàng (COALESCE xử lý null)
-          [
-            fn("COALESCE", fn("SUM", col("Orders.total")), 0),
-            "totalOrderAmount",
-          ],
-
-          // Đếm đánh giá tích cực (POS)
+          [fn("COALESCE", fn("SUM", col("Orders.total")), 0), "totalOrderAmount"],
           [
             literal(`(
               SELECT COUNT(*) FROM product_review AS pr
@@ -129,7 +125,6 @@ export const getAllCustomers = async (req, res) => {
             )`),
             "positiveReviewCount",
           ],
-          // Đếm đánh giá tiêu cực (NEG)
           [
             literal(`(
               SELECT COUNT(*) FROM product_review AS pr
@@ -137,7 +132,6 @@ export const getAllCustomers = async (req, res) => {
             )`),
             "negativeReviewCount",
           ],
-          // Đếm đánh giá trung tính (NEU)
           [
             literal(`(
               SELECT COUNT(*) FROM product_review AS pr
@@ -151,12 +145,12 @@ export const getAllCustomers = async (req, res) => {
         {
           model: db.Order,
           attributes: [],
-          required: false, // lấy cả khách hàng chưa có đơn hàng
+          required: false,
         },
       ],
       group: ["Customer.customer_id"],
       order: [["customer_id", "ASC"]],
-      raw: true, // để kết quả trả về object thuần, dễ dùng frontend
+      raw: true,
     });
 
     return res.status(200).json(customers);
@@ -170,63 +164,90 @@ export const getAllCustomers = async (req, res) => {
 };
 
 export const updateCustomerProfile = async (req, res) => {
-  // Lấy userId từ token (đã qua middleware authenticateToken)
-  const userId = req.user.userId;
-  const { name, phone, gender, address } = req.body;
+  const userId = req.user?.userId ?? req.user?.id;
+  const {
+    fullName,
+    name,
+    phone,
+    gender,
+    address,
+    birthday,
+    password,
+  } = req.body;
+
+  if (!userId) {
+    return res.status(401).json({ message: "Không xác định được người dùng" });
+  }
+
+  const normalizedName = fullName ?? name;
+  const normalizedGender = gender === "" ? null : gender;
+  const normalizedAddress = address === "" ? null : address;
+  const normalizedBirthday = birthday === "" ? null : birthday;
 
   const t = await db.sequelize.transaction();
 
   try {
-    // Tìm customer theo user_id
+    const user = await db.User.findByPk(userId, { transaction: t });
+    if (!user) {
+      await t.rollback();
+      return res.status(404).json({ message: "Người dùng không tồn tại" });
+    }
+
     let customer = await db.Customer.findOne({
       where: { user_id: userId },
       transaction: t,
     });
 
     if (!customer) {
-      // Nếu chưa có record customer, tạo mới
-      // Lấy email từ User để tạo Customer đầy đủ
-      const user = await db.User.findByPk(userId, { transaction: t });
-      if (!user) {
-        await t.rollback();
-        return res.status(404).json({ message: "Người dùng không tồn tại" });
-      }
-
       customer = await db.Customer.create(
         {
           user_id: userId,
-          name: name || user.name,
+          name: normalizedName || user.name,
           email: user.email,
-          phone: phone || null,
-          gender: gender || null,
-          address: address || null,
+          phone: phone || generateFallbackPhone(),
+          gender: normalizedGender,
+          address: normalizedAddress,
+          birthday: normalizedBirthday,
         },
         { transaction: t },
       );
     } else {
-      // Cập nhật các trường thông tin cá nhân
-      if (name !== undefined) customer.name = name;
+      if (normalizedName !== undefined) customer.name = normalizedName;
       if (phone !== undefined) customer.phone = phone;
-      if (gender !== undefined) customer.gender = gender;
-      if (address !== undefined) customer.address = address;
+      if (gender !== undefined) customer.gender = normalizedGender;
+      if (address !== undefined) customer.address = normalizedAddress;
+      if (birthday !== undefined) customer.birthday = normalizedBirthday;
 
       await customer.save({ transaction: t });
+    }
 
-      // Đồng bộ lại tên User (nếu cần)
-      if (name !== undefined) {
-        const user = await db.User.findByPk(userId, { transaction: t });
-        if (user) {
-          user.name = name;
-          await user.save({ transaction: t });
-        }
-      }
+    if (normalizedName !== undefined) {
+      user.name = normalizedName;
+    }
+
+    if (password) {
+      user.password_hash = await bcrypt.hash(password, 10);
+    }
+
+    if (normalizedName !== undefined || password) {
+      await user.save({ transaction: t });
     }
 
     await t.commit();
 
+    const refreshedCustomer = await db.Customer.findOne({
+      where: { user_id: userId },
+    });
+
     return res.status(200).json({
       message: "Cập nhật thông tin cá nhân thành công",
-      customer,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role_id: user.role_id,
+      },
+      customer: refreshedCustomer,
     });
   } catch (err) {
     await t.rollback();
@@ -242,8 +263,9 @@ export const getCustomer = async (req, res) => {
 
   try {
     const customer = await db.Customer.findOne({ where: { user_id: userId } });
-    if (!customer)
+    if (!customer) {
       return res.status(404).json({ message: "Khách hàng không tìm thấy" });
+    }
     res.status(200).json(customer);
   } catch (err) {
     res
