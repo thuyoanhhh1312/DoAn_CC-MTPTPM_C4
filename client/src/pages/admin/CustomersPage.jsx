@@ -1,250 +1,262 @@
-import { useState, useEffect } from 'react';
-import { Button, Card, Input, Modal, Space, Table, Tag, message } from 'antd';
-import { Trash2, Search } from 'lucide-react';
-import PageContainer from '@/components/common/PageContainer';
+import { useEffect, useMemo, useState } from "react";
+import { Button, Card, Input, Modal, Space, Statistic, Table, Tag, message } from "antd";
+import { Search, Trash2, Users, ShoppingBag, Wallet } from "lucide-react";
+import PageContainer from "@/components/common/PageContainer";
+import customerApi from "@/api/customerApi";
 
-// Mock customer data
-const mockCustomersData = [
-  {
-    id: 1,
-    name: 'Olivia Tran',
-    email: 'olivia@mail.com',
-    phone: '+84 901 234 567',
-    tier: 'gold',
-    orders: 14,
-    createdAt: '2024-01-15',
-  },
-  {
-    id: 2,
-    name: 'Noah Nguyen',
-    email: 'noah@mail.com',
-    phone: '+84 902 345 678',
-    tier: 'silver',
-    orders: 7,
-    createdAt: '2024-02-20',
-  },
-  {
-    id: 3,
-    name: 'Mia Le',
-    email: 'mia@mail.com',
-    phone: '+84 903 456 789',
-    tier: 'platinum',
-    orders: 22,
-    createdAt: '2024-01-05',
-  },
-  {
-    id: 4,
-    name: 'Sophia Pham',
-    email: 'sophia@mail.com',
-    phone: '+84 904 567 890',
-    tier: 'bronze',
-    orders: 2,
-    createdAt: '2024-03-10',
-  },
-  {
-    id: 5,
-    name: 'Ethan Hoang',
-    email: 'ethan@mail.com',
-    phone: '+84 905 678 901',
-    tier: 'gold',
-    orders: 18,
-    createdAt: '2024-01-25',
-  },
-];
-
-const mockDeleteCustomer = async (customerId) => {
-  // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 600));
-  console.log('Mock API: Delete Customer', customerId);
-  return { success: true, message: 'Customer deleted successfully' };
+const segmentColorMap = {
+  bronze: "default",
+  silver: "blue",
+  gold: "gold",
+  vip: "volcano",
 };
 
-const tierColor = {
-  bronze: 'default',
-  silver: 'silver',
-  gold: '#B08A4A',
-  platinum: '#12332B',
-};
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+
+const getAccessToken = () =>
+  localStorage.getItem("accessToken") ||
+  JSON.parse(localStorage.getItem("user") || "null")?.token;
 
 const CustomersPage = () => {
   const [customers, setCustomers] = useState([]);
-  const [filteredCustomers, setFilteredCustomers] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [keyword, setKeyword] = useState("");
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Initialize with mock data
-  useEffect(() => {
+  const fetchCustomers = async (searchValue = "") => {
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setCustomers(mockCustomersData);
-      setFilteredCustomers(mockCustomersData);
-      setLoading(false);
-    }, 500);
-  }, []);
-
-  // Handle search filter
-  useEffect(() => {
-    const filtered = customers.filter((customer) => {
-      const query = searchQuery.toLowerCase();
-      return (
-        customer.name.toLowerCase().includes(query) ||
-        customer.email.toLowerCase().includes(query)
+    try {
+      const data = await customerApi.getAllCustomers({
+        keyword: searchValue,
+        accessToken: getAccessToken(),
+      });
+      setCustomers(Array.isArray(data) ? data : []);
+    } catch (error) {
+      message.error(
+        error.response?.data?.message || "Không thể tải danh sách khách hàng",
       );
-    });
-    setFilteredCustomers(filtered);
-  }, [searchQuery, customers]);
-
-  const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDeleteClick = (customer) => {
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
+
+  const summary = useMemo(() => {
+    return customers.reduce(
+      (acc, customer) => {
+        acc.totalCustomers += 1;
+        acc.totalOrders += Number(customer.orderCount || 0);
+        acc.totalRevenue += Number(customer.totalOrderAmount || 0);
+        return acc;
+      },
+      { totalCustomers: 0, totalOrders: 0, totalRevenue: 0 },
+    );
+  }, [customers]);
+
+  const handleSearch = (value) => {
+    const nextKeyword = value ?? "";
+    setKeyword(nextKeyword);
+    fetchCustomers(nextKeyword.trim());
+  };
+
+  const openDeleteModal = (customer) => {
     setSelectedCustomer(customer);
     setDeleteModalVisible(true);
   };
 
-  const handleConfirmDelete = async () => {
+  const handleDeleteCustomer = async () => {
     if (!selectedCustomer) return;
 
     setDeleting(true);
     try {
-      const response = await mockDeleteCustomer(selectedCustomer.id);
-
-      if (response.success) {
-        message.success(response.message);
-        // Remove customer from list
-        const updated = customers.filter((c) => c.id !== selectedCustomer.id);
-        setCustomers(updated);
-        setDeleteModalVisible(false);
-        setSelectedCustomer(null);
-      } else {
-        message.error(response.message || 'Failed to delete customer');
-      }
+      const response = await customerApi.deleteCustomer(
+        selectedCustomer.customer_id,
+        getAccessToken(),
+      );
+      message.success(response.message || "Đã dừng tài khoản khách hàng");
+      setDeleteModalVisible(false);
+      setSelectedCustomer(null);
+      fetchCustomers(keyword.trim());
     } catch (error) {
-      message.error(error.message || 'An error occurred');
+      message.error(
+        error.response?.data?.message || "Không thể dừng tài khoản khách hàng",
+      );
     } finally {
       setDeleting(false);
     }
   };
 
-  const handleCancelDelete = () => {
-    setDeleteModalVisible(false);
-    setSelectedCustomer(null);
-  };
-
   const columns = [
     {
-      title: 'Name',
-      dataIndex: 'name',
-      key: 'name',
-      width: '20%',
-      sorter: (a, b) => a.name.localeCompare(b.name),
-    },
-    {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
-      width: '25%',
-    },
-    {
-      title: 'Phone',
-      dataIndex: 'phone',
-      key: 'phone',
-      width: '20%',
-    },
-    {
-      title: 'Tier',
-      key: 'tier',
-      dataIndex: 'tier',
-      width: '12%',
-      render: (tier) => <Tag color={tierColor[tier]}>{tier}</Tag>,
-    },
-    {
-      title: 'Orders',
-      dataIndex: 'orders',
-      key: 'orders',
-      width: '10%',
-      sorter: (a, b) => a.orders - b.orders,
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      width: '13%',
+      title: "Khách hàng",
+      key: "name",
+      sorter: (a, b) => String(a.name || "").localeCompare(String(b.name || "")),
       render: (_, record) => (
-        <Space>
-          <Button
-            type="primary"
-            danger
-            icon={<Trash2 size={14} />}
-            onClick={() => handleDeleteClick(record)}
-            size="small"
-          >
-            Delete
-          </Button>
-        </Space>
+        <div>
+          <div className="font-semibold text-gray-800">{record.name || "Chưa có tên"}</div>
+          <div className="text-xs text-gray-500">ID: {record.customer_id}</div>
+        </div>
+      ),
+    },
+    {
+      title: "Liên hệ",
+      key: "contact",
+      render: (_, record) => (
+        <div>
+          <div>{record.email || "Không có email"}</div>
+          <div className="text-xs text-gray-500">{record.phone || "Chưa cập nhật số điện thoại"}</div>
+        </div>
+      ),
+    },
+    {
+      title: "Phân hạng",
+      dataIndex: "segment_type",
+      key: "segment_type",
+      render: (segment) => (
+        <Tag color={segmentColorMap[segment] || "default"}>
+          {segment || "bronze"}
+        </Tag>
+      ),
+    },
+    {
+      title: "Đơn hàng",
+      dataIndex: "orderCount",
+      key: "orderCount",
+      sorter: (a, b) => Number(a.orderCount || 0) - Number(b.orderCount || 0),
+      render: (value) => Number(value || 0),
+    },
+    {
+      title: "Tổng chi tiêu",
+      dataIndex: "totalOrderAmount",
+      key: "totalOrderAmount",
+      sorter: (a, b) =>
+        Number(a.totalOrderAmount || 0) - Number(b.totalOrderAmount || 0),
+      render: (value) => formatCurrency(value),
+    },
+    {
+      title: "Cảm xúc review",
+      key: "sentiment",
+      render: (_, record) => (
+        <div className="text-xs leading-6 text-gray-600">
+          <div>Tích cực: {Number(record.positiveReviewCount || 0)}</div>
+          <div>Tiêu cực: {Number(record.negativeReviewCount || 0)}</div>
+          <div>Trung tính: {Number(record.neutralReviewCount || 0)}</div>
+        </div>
+      ),
+    },
+    {
+      title: "Thao tác",
+      key: "action",
+      width: 140,
+      render: (_, record) => (
+        <Button
+          danger
+          icon={<Trash2 size={14} />}
+          onClick={() => openDeleteModal(record)}
+        >
+          Dừng tài khoản
+        </Button>
       ),
     },
   ];
 
   return (
     <PageContainer
-      title="Customers"
-      subtitle="Manage customer profiles, view loyalty tiers, and handle account moderation."
+      title="Quản lý khách hàng"
+      subtitle="Theo dõi hồ sơ khách hàng, doanh thu, đơn hàng và trạng thái tài khoản."
     >
+      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card>
+          <Statistic
+            title="Tổng khách hàng"
+            value={summary.totalCustomers}
+            prefix={<Users size={16} />}
+          />
+        </Card>
+        <Card>
+          <Statistic
+            title="Tổng đơn hàng"
+            value={summary.totalOrders}
+            prefix={<ShoppingBag size={16} />}
+          />
+        </Card>
+        <Card>
+          <Statistic
+            title="Tổng chi tiêu"
+            value={summary.totalRevenue}
+            formatter={(value) => formatCurrency(value)}
+            prefix={<Wallet size={16} />}
+          />
+        </Card>
+      </div>
+
       <Card>
         <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex-1">
-            <Input
-              placeholder="Search by name or email..."
-              prefix={<Search size={16} />}
-              value={searchQuery}
-              onChange={handleSearchChange}
-              allowClear
-            />
-          </div>
+          <Input.Search
+            className="max-w-xl"
+            placeholder="Tìm theo tên, email, số điện thoại..."
+            prefix={<Search size={16} />}
+            allowClear
+            enterButton="Tìm"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            onSearch={handleSearch}
+          />
           <div className="text-sm text-gray-500">
-            Total: <strong>{filteredCustomers.length}</strong> customers
+            Hiển thị <strong>{customers.length}</strong> khách hàng
           </div>
         </div>
 
         <Table
+          rowKey="customer_id"
           columns={columns}
-          dataSource={filteredCustomers}
-          rowKey="id"
+          dataSource={customers}
           loading={loading}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
-            showQuickJumper: true,
-            total: filteredCustomers.length,
           }}
-          scroll={{ x: 800 }}
+          scroll={{ x: 1100 }}
         />
       </Card>
 
-      {/* Delete Confirmation Modal */}
       <Modal
-        title="Delete Customer"
+        title="Dừng tài khoản khách hàng"
         open={deleteModalVisible}
-        onOk={handleConfirmDelete}
-        onCancel={handleCancelDelete}
-        okText="Delete"
-        cancelText="Cancel"
+        onOk={handleDeleteCustomer}
+        onCancel={() => {
+          if (!deleting) {
+            setDeleteModalVisible(false);
+            setSelectedCustomer(null);
+          }
+        }}
+        okText="Xác nhận"
+        cancelText="Hủy"
         okButtonProps={{ danger: true, loading: deleting }}
         closable={!deleting}
       >
-        <p>
-          Are you sure you want to delete customer{' '}
-          <strong>{selectedCustomer?.name}</strong>?
-        </p>
-        <p className="text-sm text-gray-500">
-          Email: <code>{selectedCustomer?.email}</code>
-        </p>
-        <p className="mt-2 text-red-600">This action cannot be undone.</p>
+        <Space direction="vertical" size={6}>
+          <div>
+            Bạn có chắc muốn dừng tài khoản của{" "}
+            <strong>{selectedCustomer?.name}</strong>?
+          </div>
+          <div className="text-sm text-gray-500">
+            Email: {selectedCustomer?.email || "Không có"}
+          </div>
+          <div className="text-sm text-red-600">
+            Người dùng sẽ không thể tiếp tục sử dụng tài khoản này.
+          </div>
+        </Space>
       </Modal>
     </PageContainer>
   );
