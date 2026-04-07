@@ -7,6 +7,9 @@ import mysql from "mysql2/promise";
 dotenv.config();
 
 const router = express.Router();
+const PAYMENT_TIMEOUT_MINUTES = Number(
+  process.env.VNPAY_PAYMENT_TIMEOUT_MINUTES || 15,
+);
 
 const createDbConnection = async () =>
   mysql.createConnection({
@@ -126,6 +129,46 @@ const markOrderPaymentFailed = async (
      WHERE order_id = ? AND status_id = ?`,
     [paymentDetails, orderId, pendingStatusId],
   );
+};
+
+const deductInventoryForOrder = async (dbConnection, orderId) => {
+  const [items] = await dbConnection.execute(
+    `SELECT oi.product_id, oi.quantity, p.quantity AS available_quantity
+     FROM order_items oi
+     JOIN products p ON p.product_id = oi.product_id
+     WHERE oi.order_id = ?`,
+    [orderId],
+  );
+
+  if (!items || items.length === 0) {
+    throw new Error("Không tìm thấy sản phẩm trong đơn hàng để trừ kho.");
+  }
+
+  for (const item of items) {
+    const available = Number(item.available_quantity || 0);
+    const needed = Number(item.quantity || 0);
+
+    if (available < needed) {
+      throw new Error(
+        `Không đủ tồn kho cho product_id=${item.product_id}. Cần ${needed}, còn ${available}.`,
+      );
+    }
+  }
+
+  for (const item of items) {
+    const needed = Number(item.quantity || 0);
+    const [result] = await dbConnection.execute(
+      `UPDATE products
+       SET quantity = quantity - ?,
+           sold_quantity = sold_quantity + ?
+       WHERE product_id = ? AND quantity >= ?`,
+      [needed, needed, item.product_id, needed],
+    );
+
+    if (!result || result.affectedRows === 0) {
+      throw new Error(`Trừ kho thất bại cho product_id=${item.product_id}.`);
+    }
+  }
 };
 
 router.post("/create_payment_url", async (req, res) => {
@@ -263,7 +306,9 @@ router.get("/vnpay_return", async (req, res) => {
 
       // Kiểm tra đơn hàng có tồn tại không
       const [checkOrder] = await dbConnection.execute(
-        `SELECT order_id, total, status_id FROM orders WHERE order_id = ?`,
+        `SELECT order_id, total, status_id, deposit_status, transaction_id, created_at
+         FROM orders
+         WHERE order_id = ?`,
         [orderId],
       );
 
@@ -283,6 +328,10 @@ router.get("/vnpay_return", async (req, res) => {
       const isDeposit = Math.abs(amount - order.total * 0.1) < 1;
       const expectedAmount = isDeposit ? order.total * 0.1 : order.total;
       const newStatusId = isDeposit ? pendingId : confirmedId;
+      const alreadyProcessed =
+        Boolean(order.transaction_id) ||
+        (isDeposit && order.deposit_status === "paid") ||
+        (!isDeposit && order.status_id === confirmedId);
 
       console.log(
         `📊 Payment type: ${
@@ -311,8 +360,8 @@ router.get("/vnpay_return", async (req, res) => {
         );
       }
 
-      // ✅ Kiểm tra xem đã xác nhận rồi không
-      if (order.status_id === confirmedId) {
+      // ✅ Nếu callback bị gửi lặp, trả về success page nhưng không xử lý lại.
+      if (alreadyProcessed) {
         console.warn(
           `⚠️ Order ${orderId} đã được xác nhận rồi (VNPay duplicate callback)`,
         );
@@ -339,40 +388,85 @@ router.get("/vnpay_return", async (req, res) => {
         );
       }
 
-      // ✅ Update đơn hàng với thông tin thanh toán (phân biệt deposit vs full)
-      await dbConnection.execute(
-        `UPDATE orders 
-       SET deposit_status = 'paid', 
-           payment_method = 'vnpay', 
-           transaction_id = ?,
-           payment_details = ?,
-           status_id = ?,
-           updated_at = NOW() 
-       WHERE order_id = ? AND status_id = ?`,
-        [
-          vnp_Params.vnp_TransactionNo || orderId,
-          JSON.stringify(vnp_Params),
-          newStatusId,
-          orderId,
-          pendingId,
-        ],
-      );
+      const orderCreatedAt = order.created_at
+        ? new Date(order.created_at)
+        : null;
+      const expiredByMinutes =
+        orderCreatedAt &&
+        Date.now() - orderCreatedAt.getTime() >
+          PAYMENT_TIMEOUT_MINUTES * 60 * 1000;
 
-      // ✅ Kiểm tra xem update có thành công không (tránh race condition)
-      const [updateResult] = await dbConnection.execute(
-        `SELECT ROW_COUNT() as changedRows`,
-      );
-      const changedRows = updateResult[0]?.changedRows || 0;
-
-      if (changedRows === 0) {
+      if (expiredByMinutes) {
         console.warn(
-          `⚠️ Order ${orderId} không được cập nhật (có thể đã xác nhận trước đó)`,
+          `⚠️ Order ${orderId} quá hạn thanh toán (${PAYMENT_TIMEOUT_MINUTES} phút).`,
         );
-      } else {
-        const logMsg = isDeposit
-          ? `✅ Order ${orderId} đã cọc 10% thành công! (VNPay Deposit - COD)`
-          : `✅ Order ${orderId} đã thanh toán toàn bộ! (VNPay Full)`;
-        console.log(logMsg);
+        await markOrderPaymentFailed(
+          dbConnection,
+          orderId,
+          vnp_Params,
+          "payment_timeout",
+          failedId,
+          pendingId,
+        );
+        await dbConnection.end();
+        return res.redirect(
+          `${process.env.CLIENT_URL}/order-failed?error=payment_timeout`,
+        );
+      }
+
+      await dbConnection.beginTransaction();
+
+      try {
+        await deductInventoryForOrder(dbConnection, orderId);
+
+        // ✅ Update đơn hàng với thông tin thanh toán (phân biệt deposit vs full)
+        const [updateResult] = await dbConnection.execute(
+          `UPDATE orders 
+         SET deposit_status = 'paid', 
+             payment_method = 'vnpay', 
+             transaction_id = ?,
+             payment_details = ?,
+             status_id = ?,
+             updated_at = NOW() 
+         WHERE order_id = ? AND status_id = ?`,
+          [
+            vnp_Params.vnp_TransactionNo || orderId,
+            JSON.stringify(vnp_Params),
+            newStatusId,
+            orderId,
+            pendingId,
+          ],
+        );
+
+        const changedRows = updateResult?.affectedRows || 0;
+
+        if (changedRows === 0) {
+          await dbConnection.rollback();
+          console.warn(
+            `⚠️ Order ${orderId} không được cập nhật (có thể đã xác nhận trước đó)`,
+          );
+        } else {
+          await dbConnection.commit();
+          const logMsg = isDeposit
+            ? `✅ Order ${orderId} đã cọc 10% thành công! (VNPay Deposit - COD)`
+            : `✅ Order ${orderId} đã thanh toán toàn bộ! (VNPay Full)`;
+          console.log(logMsg);
+        }
+      } catch (stockError) {
+        await dbConnection.rollback();
+        await markOrderPaymentFailed(
+          dbConnection,
+          orderId,
+          vnp_Params,
+          "insufficient_stock",
+          failedId,
+          pendingId,
+        );
+        console.error(`❌ Trừ kho thất bại cho order ${orderId}:`, stockError);
+        await dbConnection.end();
+        return res.redirect(
+          `${process.env.CLIENT_URL}/order-failed?error=insufficient_stock`,
+        );
       }
 
       // ✅ Lấy chi tiết đơn hàng kèm thông tin khách hàng
