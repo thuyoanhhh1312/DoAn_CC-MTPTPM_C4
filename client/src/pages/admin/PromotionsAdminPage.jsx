@@ -13,6 +13,7 @@ import { Tag } from 'primereact/tag';
 import Swal from 'sweetalert2';
 import PageContainer from '@/components/common/PageContainer';
 import promotionApi from '@/api/promotionApi';
+import campaignApi from '@/api/campaignApi';
 
 const SEGMENT_OPTIONS = [
   { label: 'Tất cả khách hàng', value: null },
@@ -36,6 +37,8 @@ const PromotionsAdminPage = () => {
   const [first, setFirst] = useState(0);
   const [keyword, setKeyword] = useState('');
   const [selectedSegment, setSelectedSegment] = useState('');
+  const [campaigns, setCampaigns] = useState([]);
+  const [loadingCampaigns, setLoadingCampaigns] = useState(false);
   const [displayDialog, setDisplayDialog] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [formData, setFormData] = useState({
@@ -81,6 +84,25 @@ const PromotionsAdminPage = () => {
   useEffect(() => {
     fetchPromotions();
   }, [fetchPromotions]);
+
+  const fetchCampaigns = useCallback(async () => {
+    if (!accessToken) return;
+
+    setLoadingCampaigns(true);
+    try {
+      const response = await campaignApi.getAllCampaigns({}, accessToken);
+      setCampaigns(response?.data || []);
+    } catch (error) {
+      console.error('Error fetching campaigns:', error);
+      Swal.fire('Lỗi', 'Không thể tải danh sách chiến dịch', 'error');
+    } finally {
+      setLoadingCampaigns(false);
+    }
+  }, [accessToken]);
+
+  useEffect(() => {
+    fetchCampaigns();
+  }, [fetchCampaigns]);
 
   // Reset filters
   const handleReset = () => {
@@ -457,14 +479,25 @@ const PromotionsAdminPage = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               ID chiến dịch
             </label>
-            <InputNumber
+            <Dropdown
               value={formData.campaign_id}
-              onValueChange={(e) =>
+              onChange={(e) =>
                 setFormData({ ...formData, campaign_id: e.value })
               }
               placeholder="Tùy chọn"
+              options={[
+                { label: 'Không gán campaign', value: null },
+                ...campaigns.map((campaign) => ({
+                  label: campaign.name,
+                  value: campaign.campaign_id,
+                })),
+              ]}
+              optionLabel="label"
+              optionValue="value"
               className="w-full"
-              useGrouping={false}
+              filter
+              showClear
+              loading={loadingCampaigns}
             />
           </div>
 

@@ -5,7 +5,7 @@ import {
   sendEmail,
   formatVND,
   getCurrentPeriod,
-} from "../utils/emailHelper.js";
+} from "../utils/emailHelperV2.js";
 import {
   RANK_THRESHOLDS,
   EMAIL_TEMPLATES,

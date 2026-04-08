@@ -4,12 +4,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const {
-  MAIL_USER,
-  MAIL_PASS,
-  SENDGRID_API_KEY,
-  SENDGRID_FROM,
-} = process.env;
+const { MAIL_USER, MAIL_PASS, SENDGRID_API_KEY, SENDGRID_FROM } = process.env;
 
 const hasGmailCredentials = MAIL_USER && MAIL_PASS;
 const hasSendGridCredentials = SENDGRID_API_KEY && SENDGRID_FROM;
@@ -18,7 +13,6 @@ if (SENDGRID_API_KEY) {
   sgMail.setApiKey(SENDGRID_API_KEY);
 }
 
-// Cấu hình SMTP transporter (Gmail)
 export const createMailTransporter = () => {
   if (!hasGmailCredentials) {
     throw new Error("MAIL_USER/MAIL_PASS are not configured");
@@ -33,29 +27,55 @@ export const createMailTransporter = () => {
   });
 };
 
-/**
- * Gửi email (ưu tiên SendGrid nếu có cấu hình, fallback Gmail)
- * @param {string} to - Email người nhận
- * @param {string} subject - Tiêu đề email
- * @param {string} htmlContent - Nội dung HTML
- * @returns {Promise<boolean>} - true nếu gửi thành công
- */
 export const sendEmail = async (to, subject, htmlContent) => {
   let lastError = null;
-    // SendGrid first (có sẵn API key trong .env)
-    if (hasSendGridCredentials) {
+
+  if (hasSendGridCredentials) {
+    const proxyEnvKeys = [
+      "HTTP_PROXY",
+      "HTTPS_PROXY",
+      "ALL_PROXY",
+      "http_proxy",
+      "https_proxy",
+      "all_proxy",
+    ];
+    const previousProxyEnv = Object.fromEntries(
+      proxyEnvKeys.map((key) => [key, process.env[key]]),
+    );
+
+    try {
+      for (const key of proxyEnvKeys) {
+        delete process.env[key];
+      }
+
       await sgMail.send({
         to,
         from: `OanhNgoc Jewelry <${SENDGRID_FROM}>`,
         subject,
         html: htmlContent,
       });
-      console.log(`✅ Email sent via SendGrid to ${to}`);
-      return true;
-    }
 
-    // Gmail fallback
-    if (hasGmailCredentials) {
+      console.log(`Email sent via SendGrid to ${to}`);
+      return true;
+    } catch (error) {
+      lastError = error;
+      const sendGridDetail =
+        error?.response?.body?.errors?.map((item) => item.message).join("; ") ||
+        error.message;
+      console.error(`SendGrid failed for ${to}:`, sendGridDetail);
+    } finally {
+      for (const [key, value] of Object.entries(previousProxyEnv)) {
+        if (value) {
+          process.env[key] = value;
+        } else {
+          delete process.env[key];
+        }
+      }
+    }
+  }
+
+  if (hasGmailCredentials) {
+    try {
       const transporter = createMailTransporter();
       const mailOptions = {
         from: `"OanhNgoc Jewelry" <${MAIL_USER}>`,
@@ -65,25 +85,28 @@ export const sendEmail = async (to, subject, htmlContent) => {
       };
 
       await transporter.sendMail(mailOptions);
-      console.log(`✅ Email sent successfully to ${to}`);
+      console.log(`Email sent successfully to ${to}`);
       return true;
+    } catch (error) {
+      lastError = error;
+      console.error(`Gmail SMTP failed for ${to}:`, error.message);
     }
+  }
 
+  if (!hasSendGridCredentials && !hasGmailCredentials) {
     console.error(
-      "❌ Failed to send email: No email credentials configured (SENDGRID_API_KEY/SENDGRID_FROM or MAIL_USER/MAIL_PASS)"
+      "Failed to send email: No email credentials configured (SENDGRID_API_KEY/SENDGRID_FROM or MAIL_USER/MAIL_PASS)",
     );
     return false;
-  } catch (error) {
-    console.error(`❌ Failed to send email to ${to}:`, error.message);
-    return false;
   }
+
+  if (lastError) {
+    console.error(`Failed to send email to ${to}:`, lastError.message);
+  }
+
+  return false;
 };
 
-/**
- * Format số tiền VND
- * @param {number} amount - Số tiền
- * @returns {string} - Số tiền đã format
- */
 export const formatVND = (amount) => {
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
@@ -91,11 +114,6 @@ export const formatVND = (amount) => {
   }).format(amount);
 };
 
-/**
- * Format ngày theo định dạng vi-VN
- * @param {Date|string} date - Ngày cần format
- * @returns {string} - Ngày đã format
- */
 export const formatDate = (date) => {
   return new Intl.DateTimeFormat("vi-VN", {
     day: "2-digit",
@@ -104,11 +122,6 @@ export const formatDate = (date) => {
   }).format(new Date(date));
 };
 
-/**
- * Format ngày giờ theo định dạng vi-VN
- * @param {Date|string} date - Ngày giờ cần format
- * @returns {string} - Ngày giờ đã format
- */
 export const formatDateTime = (date) => {
   return new Intl.DateTimeFormat("vi-VN", {
     day: "2-digit",
@@ -119,23 +132,14 @@ export const formatDateTime = (date) => {
   }).format(new Date(date));
 };
 
-/**
- * Lấy tháng và năm hiện tại
- * @returns {{month: number, year: number}}
- */
 export const getCurrentPeriod = () => {
   const now = new Date();
   return {
-    month: now.getMonth() + 1, // 1-12
+    month: now.getMonth() + 1,
     year: now.getFullYear(),
   };
 };
 
-/**
- * Kiểm tra xem ngày có phải sinh nhật hôm nay không
- * @param {Date|string} birthday - Ngày sinh
- * @returns {boolean}
- */
 export const isBirthdayToday = (birthday) => {
   if (!birthday) return false;
 
