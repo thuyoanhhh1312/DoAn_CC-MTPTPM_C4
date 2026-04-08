@@ -113,7 +113,8 @@ const PromotionLogSendPage = () => {
             <Tag color="gold">{(customer.segment_type || "none").toUpperCase()}</Tag>
           </div>
         ),
-        value: customer.customer_id,
+        value: customer.customer_id ?? customer.id,
+        searchText: `${customer.email || ""} ${customer.name || ""} ${customer.segment_type || ""}`.toLowerCase(),
       })),
     [customers],
   );
@@ -280,12 +281,16 @@ const PromotionLogSendPage = () => {
               className="mt-3 w-full"
               mode="multiple"
               allowClear
+              showSearch
               loading={loadingCustomers}
               placeholder="Chọn khách hàng cụ thể nếu muốn"
               value={selectedCustomerIds}
               onChange={setSelectedCustomerIds}
+              onSearch={setEmailKeyword}
               options={customerOptions}
-              optionFilterProp="value"
+              filterOption={(input, option) =>
+                (option?.searchText || "").includes((input || "").toLowerCase())
+              }
               maxTagCount="responsive"
             />
           </div>

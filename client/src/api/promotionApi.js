@@ -26,6 +26,11 @@ const getAllPromotions = async (params = {}, accessToken) => {
   }
 };
 
+// Backward-compatible alias used by some admin pages.
+const getPromotions = async (accessToken, params = {}) => {
+  return getAllPromotions(params, accessToken);
+};
+
 /**
  * Lấy khuyến mãi theo ID
  * @param {number} id - Promotion ID
@@ -111,6 +116,7 @@ const deletePromotion = async (id, accessToken) => {
 
 export default {
   getAllPromotions,
+  getPromotions,
   getPromotionById,
   createPromotion,
   updatePromotion,

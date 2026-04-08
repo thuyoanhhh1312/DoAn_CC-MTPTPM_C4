@@ -3,7 +3,7 @@ import {
   runRankUpdateNow,
 } from "../jobs/monthlyRankUpdateJob.js";
 import db from "../models/index.js";
-import { formatVND } from "../utils/emailHelper.js";
+import { formatVND } from "../utils/emailHelperV2.js";
 import { QueryTypes } from "sequelize";
 
 const { CustomerRankHistory, Customer } = db;

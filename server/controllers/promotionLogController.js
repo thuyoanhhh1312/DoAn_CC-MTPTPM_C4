@@ -1,15 +1,8 @@
-import sgMail from "@sendgrid/mail";
 import { Op } from "sequelize";
 import db from "../models/index.js";
+import { sendEmail } from "../utils/emailHelperV2.js";
 
 const { PromotionLog, Customer, Promotion, PromotionCampaign } = db;
-
-const sendGridKey = process.env.SENDGRID_API_KEY;
-const sendGridFrom = process.env.SENDGRID_FROM;
-
-if (sendGridKey) {
-  sgMail.setApiKey(sendGridKey);
-}
 
 const getCustomersBySegment = async (segmentType) => {
   return Customer.findAll({
@@ -59,8 +52,8 @@ const createPromotionLog = async (
 };
 
 const sendPromotionEmail = async ({ to, customerName, promotion }) => {
-  if (!sendGridKey || !sendGridFrom) {
-    throw new Error("SendGrid credentials are missing");
+  if (!to) {
+    throw new Error("Customer email is missing");
   }
 
   const html = `
@@ -78,12 +71,22 @@ const sendPromotionEmail = async ({ to, customerName, promotion }) => {
     </div>
   `;
 
-  await sgMail.send({
+  /* const sent = await sendEmail(
     to,
-    from: sendGridFrom,
     subject: `Ưu đãi ${promotion.promotion_code} dành cho bạn`,
     html,
-  });
+  }); */
+  const sent = await sendEmail(
+    to,
+    `Uu dai ${promotion.promotion_code} danh cho ban`,
+    html,
+  );
+
+  if (!sent) {
+    throw new Error(
+      "Unable to send promotion email. Check SENDGRID or Gmail mail configuration.",
+    );
+  }
 };
 
 export const getAllPromotionLogs = async (req, res) => {
@@ -211,6 +214,7 @@ export const sendPromotionManually = async (req, res) => {
     let sentCount = 0;
     let skippedCount = 0;
     let errorCount = 0;
+    let firstErrorMessage = null;
 
     for (const promotion of targetPromotions) {
       let targetCustomers = [];
@@ -257,17 +261,48 @@ export const sendPromotionManually = async (req, res) => {
           await createPromotionLog(customer.id, promotion.promotion_id, "sent");
           sentCount += 1;
         } catch (error) {
+          console.error(
+            `Promotion email failed for ${customer.email}:`,
+            error.message,
+          );
           await createPromotionLog(
             customer.id,
             promotion.promotion_id,
             "failed",
             error.message,
           );
+          if (!firstErrorMessage) {
+            firstErrorMessage = error.message;
+          }
           errorCount += 1;
         }
 
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
+    }
+
+    if (sentCount === 0 && errorCount > 0) {
+      return res.status(502).json({
+        success: false,
+        message: firstErrorMessage || "Failed to send promotion email.",
+        summary: {
+          sent: sentCount,
+          skipped: skippedCount,
+          failed: errorCount,
+        },
+      });
+    }
+
+    if (sentCount === 0 && skippedCount === 0 && errorCount === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Khong co khach hang phu hop de gui email.",
+        summary: {
+          sent: sentCount,
+          skipped: skippedCount,
+          failed: errorCount,
+        },
+      });
     }
 
     return res.status(200).json({
